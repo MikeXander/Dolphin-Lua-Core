@@ -54,6 +54,7 @@ int SetInfoDisplay(lua_State *L);
 int MsgBox(lua_State *L);
 int CancelScript(lua_State *L);
 void HandleLuaErrors(lua_State *L, int status);
+void lua_pushtableentry(lua_State *L, const char *key, u16 value);
 struct GCPadStatus;
 
 namespace Lua
@@ -110,6 +111,7 @@ namespace Lua
     void iSetNunchukAccelY(int yVal, int controllerID);
     void iSetNunchukAccelZ(int zVal, int controllerID);
     char *iGetWiimoteKey(int *controllerID);
+    int GetButtons(lua_State *L);
     int GetIR(lua_State *L);
 	void iSaveState(bool toSlot, int slotID, std::string fileName);
 	void iLoadState(bool fromSlot, int slotID, std::string fileName);

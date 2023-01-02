@@ -588,6 +588,22 @@ int RenderText(lua_State* L)
 	return 0;
 }
 
+void lua_pushtableentry(lua_State *L, const char *key, u16 value)
+{
+	lua_pushstring(L, key);
+	lua_pushboolean(L, value != 0);
+	lua_settable(L, -3);
+}
+
+int clamp(int value, int lower, int upper)
+{
+	if (value < lower)
+		return lower;
+	if (value > upper)
+		return upper;
+	return value;
+}
+
 int SetFrameAndAudioDump(lua_State* L)
 {
 	int argc = lua_gettop(L);
@@ -1027,6 +1043,8 @@ namespace Lua
 	    if (controllerID != currentControllerID && controllerID != ANY_CONTROLLER)
 		    return;
 
+		xVal = clamp(xVal, 0, 255);
+
 		if (UpdateGCC)
 		{
 		    PadLocal.stickX = xVal;
@@ -1047,6 +1065,8 @@ namespace Lua
 	{
 	    if (controllerID != currentControllerID && controllerID != ANY_CONTROLLER)
 		    return;
+
+	    yVal = clamp(yVal, 0, 255);
 
 	    if (UpdateGCC)
 	    {
@@ -1069,6 +1089,8 @@ namespace Lua
 	    if (controllerID != currentControllerID && controllerID != ANY_CONTROLLER)
 		    return;
 
+	    xVal = clamp(xVal, 0, 255);
+
 	    if (UpdateGCC)
 	    {
 			PadLocal.substickX = xVal;
@@ -1082,6 +1104,8 @@ namespace Lua
 	{
 	    if (controllerID != currentControllerID && controllerID != ANY_CONTROLLER)
 		    return;
+
+	    yVal = clamp(yVal, 0, 255);
 
 	    if (UpdateGCC)
 	    {
@@ -1110,6 +1134,9 @@ namespace Lua
 	{
 	    if (controllerID != currentControllerID && controllerID != ANY_CONTROLLER)
 		    return;
+
+	    xVal = clamp(xVal, 0, 1024);
+	    yVal = clamp(yVal, 0, 768);
 
 	    u16 x[4];
 	    x[0] = xVal;
@@ -1166,15 +1193,17 @@ namespace Lua
     {
 	    if (!UpdateGCC && WiimoteRptf.ir)
 	    {
+		    xVal = clamp(xVal, 0, 1024); // not working ??
 		    u8 *irdata = (WiimoteData + WiimoteRptf.ir);
 		    int y = irdata[1] + ((irdata[2] & 0xC0) << 2);
 		    SetIR(xVal, y, controllerID);
 	    }
     }
     void iSetIRY(int yVal, int controllerID)
-	{
+    {
 	    if (!UpdateGCC && WiimoteRptf.ir)
-		{
+	    {
+		    yVal = clamp(yVal, 0, 768); // not working ??
 		    u8 *irdata = (WiimoteData + WiimoteRptf.ir);
 		    int x = irdata[0] + ((irdata[2] & 0x30) << 4); // read first x coord
 		    SetIR(x, yVal, controllerID);
@@ -1185,6 +1214,7 @@ namespace Lua
 	    if (UpdateGCC || (controllerID != currentControllerID && controllerID != ANY_CONTROLLER))
 		    return;
 
+	    xVal = clamp(xVal, 0, 1023);
 	    wm_accel *dt = (wm_accel *)(WiimoteData + WiimoteRptf.accel);
 	    wm_buttons *but = (wm_buttons *)(WiimoteData + WiimoteRptf.core);
 	    dt->x = xVal >> 2;
@@ -1195,6 +1225,7 @@ namespace Lua
 	    if (UpdateGCC || (controllerID != currentControllerID && controllerID != ANY_CONTROLLER))
 		    return;
 
+	    yVal = clamp(yVal, 0, 1023);
 	    wm_accel *dt = (wm_accel *)(WiimoteData + WiimoteRptf.accel);
 	    wm_buttons *but = (wm_buttons *)(WiimoteData + WiimoteRptf.core);
 	    dt->y = yVal >> 2;
@@ -1205,6 +1236,7 @@ namespace Lua
 	    if (UpdateGCC || (controllerID != currentControllerID && controllerID != ANY_CONTROLLER))
 		    return;
 
+	    zVal = clamp(zVal, 0, 1023);
 	    wm_accel *dt = (wm_accel *)(WiimoteData + WiimoteRptf.accel);
 	    wm_buttons *but = (wm_buttons *)(WiimoteData + WiimoteRptf.core);
 	    dt->z = zVal >> 2;
@@ -1217,6 +1249,7 @@ namespace Lua
 
 	    if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
 	    {
+		    xVal = clamp(xVal, 0, 1023);
 		    wm_nc *nunchuk = (wm_nc *)(WiimoteData + WiimoteRptf.ext);
 		    WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 		    nunchuk->ax = xVal >> 2;
@@ -1231,6 +1264,7 @@ namespace Lua
 
 	    if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
 	    {
+		    yVal = clamp(yVal, 0, 1023);
 		    wm_nc *nunchuk = (wm_nc *)(WiimoteData + WiimoteRptf.ext);
 		    WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 		    nunchuk->ay = yVal >> 2;
@@ -1244,7 +1278,8 @@ namespace Lua
 		    return;
 
 		if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
-		{
+	    {
+		    zVal = clamp(zVal, 0, 1023);
 		    wm_nc *nunchuk = (wm_nc *)(WiimoteData + WiimoteRptf.ext);
 		    WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 		    nunchuk->az = zVal >> 2;
@@ -1268,6 +1303,61 @@ namespace Lua
 		}
 	    return key;
 	}
+    int GetButtons(lua_State *L)
+    {
+	    printf("buttons\n");
+	    int controller = ANY_CONTROLLER;
+	    if (lua_gettop(L) > 0)
+		    controller = lua_tointeger(L, 1);
+	    if (controller != currentControllerID && controller != ANY_CONTROLLER)
+		    return 0; // return nil on mismatching input poll
+	    lua_newtable(L); // push empty table
+	    if (UpdateGCC)
+	    {
+		    lua_pushtableentry(L, "LEFT", PadLocal.button & PadButton::PAD_BUTTON_LEFT);
+		    lua_pushtableentry(L, "RIGHT", PadLocal.button & PadButton::PAD_BUTTON_RIGHT);
+		    lua_pushtableentry(L, "UP", PadLocal.button & PadButton::PAD_BUTTON_UP);
+		    lua_pushtableentry(L, "DOWN", PadLocal.button & PadButton::PAD_BUTTON_DOWN);
+		    lua_pushtableentry(L, "A", PadLocal.button & PadButton::PAD_BUTTON_A);
+		    lua_pushtableentry(L, "B", PadLocal.button & PadButton::PAD_BUTTON_B);
+		    lua_pushtableentry(L, "X", PadLocal.button & PadButton::PAD_BUTTON_X);
+		    lua_pushtableentry(L, "Y", PadLocal.button & PadButton::PAD_BUTTON_Y);
+		    lua_pushtableentry(L, "L", PadLocal.button & PadButton::PAD_TRIGGER_L);
+		    lua_pushtableentry(L, "R", PadLocal.button & PadButton::PAD_TRIGGER_R);
+		    lua_pushtableentry(L, "Z", PadLocal.button & PadButton::PAD_TRIGGER_Z);
+		    lua_pushtableentry(L, "Start", PadLocal.button & PadButton::PAD_BUTTON_START);
+		}
+	    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+	    {
+	    
+		}
+	    else
+		{
+		    wm_buttons *buttons = (wm_buttons *)(WiimoteData + WiimoteRptf.core);
+		    // lua_pushinteger(L, buttons->hex);
+		    lua_pushtableentry(L, "LEFT", buttons->left);
+		    lua_pushtableentry(L, "RIGHT", buttons->right);
+		    lua_pushtableentry(L, "UP", buttons->up);
+		    lua_pushtableentry(L, "DOWN", buttons->down);
+		    lua_pushtableentry(L, "A", buttons->a);
+		    lua_pushtableentry(L, "B", buttons->b);
+		    lua_pushtableentry(L, "+", buttons->plus);
+		    lua_pushtableentry(L, "-", buttons->minus);
+		    lua_pushtableentry(L, "1", buttons->one);
+		    lua_pushtableentry(L, "2", buttons->two);
+		    lua_pushtableentry(L, "HOME", buttons->home);
+		    if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
+		    {
+			    wm_nc *nunchuk = (wm_nc *)(WiimoteData + WiimoteRptf.ext);
+			    WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
+			    // there is probably a better way to access these bits
+			    lua_pushtableentry(L, "C", WiimoteEmu::Nunchuk::BUTTON_C - (nunchuk->bt.hex & WiimoteEmu::Nunchuk::BUTTON_C)); 
+			    lua_pushtableentry(L, "Z", WiimoteEmu::Nunchuk::BUTTON_Z - (nunchuk->bt.hex & WiimoteEmu::Nunchuk::BUTTON_Z));
+				WiimoteEncrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
+			}
+	    }
+	    return 1;
+    }
 	int GetIR(lua_State *L) {
 	    int controller = ANY_CONTROLLER;
 	    if (lua_gettop(L) > 0)
@@ -1427,6 +1517,7 @@ namespace Lua
 		lua_register(luaState, "SetCStickY", SetCStickY);
 
 	    lua_register(luaState, "GetWiimoteKey", GetWiimoteKey); // Xander: wiimote + extension controls
+	    lua_register(luaState, "GetButtons", Lua::GetButtons);
 	    lua_register(luaState, "SetIRX", SetIRX);
 	    lua_register(luaState, "SetIRY", SetIRY);
 	    lua_register(luaState, "SetIRBytes", SetIRBytes);
