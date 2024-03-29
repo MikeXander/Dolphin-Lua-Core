@@ -662,6 +662,18 @@ void HandleLuaErrors(lua_State* L, int status)
 	}
 }
 
+int CallIfExists(lua_State* L, const char *funcName)
+{
+
+	lua_getglobal(L, funcName);
+	if (lua_isfunction(L, -1))
+	{
+		return lua_pcall(L, 0, LUA_MULTRET, 0);
+	}
+	lua_pop(L, -1);
+	return 0;
+}
+
 namespace Lua
 {
 	//Dragonbane: Lua Stuff
@@ -1692,9 +1704,7 @@ namespace Lua
 				if (status == 0)
 				{
 					//Execute Start function
-					lua_getglobal(it->luaState, "onScriptStart");
-
-					status = lua_pcall(it->luaState, 0, LUA_MULTRET, 0);
+				    status = CallIfExists(it->luaState, "onScriptStart");
 				}
 
 				if (status != 0)
@@ -1712,9 +1722,7 @@ namespace Lua
 			}
 			else if (it->requestedTermination) //Cancel Script and delete the entry from the list
 			{
-				lua_getglobal(it->luaState, "onScriptCancel");
-
-				status = lua_pcall(it->luaState, 0, LUA_MULTRET, 0);
+			    status = CallIfExists(it->luaState, "onScriptCancel");
 
 				if (status != 0)
 				{
@@ -1737,9 +1745,7 @@ namespace Lua
 						//Saved State Callback
 						it->wantsSavestateCallback = false;
 
-						lua_getglobal(it->luaState, "onStateSaved");
-
-						status = lua_pcall(it->luaState, 0, LUA_MULTRET, 0);
+					    status = CallIfExists(it->luaState, "onStateSaved");
 
 						if (status != 0)
 						{
@@ -1759,9 +1765,7 @@ namespace Lua
 						//Loaded State Callback
 						it->wantsSavestateCallback = false;
 
-						lua_getglobal(it->luaState, "onStateLoaded");
-
-						status = lua_pcall(it->luaState, 0, LUA_MULTRET, 0);
+					    status = CallIfExists(it->luaState, "onStateLoaded");
 
 						if (status != 0)
 						{
@@ -1781,9 +1785,7 @@ namespace Lua
 				//Call normal Update function
 				if (status == 0)
 				{
-					lua_getglobal(it->luaState, "onScriptUpdate");
-
-					status = lua_pcall(it->luaState, 0, LUA_MULTRET, 0);
+				    status = CallIfExists(it->luaState, "onScriptUpdate");
 
 					if (status != 0)
 					{
