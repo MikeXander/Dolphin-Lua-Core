@@ -47,11 +47,12 @@ CancelScript() //Cancels the script
 
 Available input/controller functions.
 Notes for every function:
+- functions that set inputs are ignored during movie playback
 - ControllerID coressponds to the controller you want to press inputs
- -   0 to 3 correspond to GameCube Controllers 1 to 4
- -   4 to 7 correspond to Wiimotes 1 to 4
- -   this parameter is optional. If no CID is given (or -1), it will apply the function to all controllers
-   -       Ex. PressButton("A") will press A with every conntected controller
+  -   0 to 3 correspond to GameCube Controllers 1 to 4
+  -   4 to 7 correspond to Wiimotes 1 to 4
+  -   this parameter is optional. If no CID is given (or -1), it will apply the function to all controllers
+      -   Ex. PressButton("A") will press A with every conntected controller
 - The classic controller extension is currently unsupported because I'm lazy and don't know anyone who TASes with it
 - for the IR functions, (0, 0) is the Top Right of the screen
 - Currently, functions that have inputs within some range have undefined behaviour when given input outside those ranges
