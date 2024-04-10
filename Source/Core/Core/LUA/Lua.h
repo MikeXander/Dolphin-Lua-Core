@@ -30,6 +30,7 @@ int WriteValueString(lua_State *L);
 int GetPointerNormal(lua_State *L);
 int GetGameID(lua_State *L);
 int GetWiimoteKey(lua_State *L);
+int GetWiimoteExtension(lua_State *L);
 int PressButton(lua_State *L);
 int ReleaseButton(lua_State *L);
 int SetMainStickX(lua_State *L);
@@ -111,6 +112,7 @@ namespace Lua
     void iSetNunchukAccelY(int yVal, int controllerID);
     void iSetNunchukAccelZ(int zVal, int controllerID);
     char *iGetWiimoteKey(int *controllerID);
+    int iGetWiimoteExtension(int *controllerID);
     int GetButtons(lua_State *L);
     int GetIR(lua_State *L);
 	void iSaveState(bool toSlot, int slotID, std::string fileName);

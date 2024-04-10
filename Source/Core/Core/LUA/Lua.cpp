@@ -322,6 +322,15 @@ int GetWiimoteKey(lua_State* L)
 	return 2;
 }
 
+int GetWiimoteExtension(lua_State* L)
+{
+	int controller;
+	int ext = Lua::iGetWiimoteExtension(&controller);
+	lua_pushinteger(L, controller);
+	lua_pushinteger(L, ext);
+	return 2;
+}
+
 int PressButton(lua_State* L)
 {
 	if (Movie::IsPlayingInput())
@@ -708,6 +717,13 @@ namespace Lua
 	    if (controllerID != currentControllerID && controllerID != ANY_CONTROLLER) // Xander: specify controller
 		    return;
 
+		// decrypt extensions
+		wm_classic_extension *cc = (WiimoteRptf.ext && WiimoteExt == CLASSIC) ? (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext) : nullptr;
+	    if (cc) WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+
+		wm_nc *nunchuk = (WiimoteRptf.ext && WiimoteExt == NUNCHUK) ? (wm_nc *)(WiimoteData + WiimoteRptf.ext) : nullptr;
+	    if (nunchuk) WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
+
 		if (!strcmp(button, "A"))
 		{
 			if (UpdateGCC)
@@ -715,9 +731,9 @@ namespace Lua
 			    PadLocal.button |= m_gc_pad_buttons_bitmask[4];
 			    PadLocal.analogA = 0xFF;
 			}
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC) // See TASInputDlg::GetValues for data setup
+		    else if (cc) // See TASInputDlg::GetValues for data setup
 			{
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_A; // bits are flipped
 			}
 			else
 			{
@@ -731,9 +747,9 @@ namespace Lua
 			    PadLocal.button |= m_gc_pad_buttons_bitmask[5];
 			    PadLocal.analogB = 0xFF;
 			}
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
-			{
-
+		    else if (cc)
+		    {
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_B;
 			}
 			else
 			{
@@ -746,9 +762,9 @@ namespace Lua
 			{
 			    PadLocal.button |= m_gc_pad_buttons_bitmask[6];
 			}
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
-			{
-
+		    else if (cc)
+		    {
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_X;
 			}
 		}
 		else if (!strcmp(button, "Y"))
@@ -757,9 +773,9 @@ namespace Lua
 		    {
 				PadLocal.button |= m_gc_pad_buttons_bitmask[7];
 			}
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
-			{
-
+		    else if (cc)
+		    {
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_Y;			    
 			}
 		}
 		else if (!strcmp(button, "Z"))
@@ -768,12 +784,9 @@ namespace Lua
 		    {
 				PadLocal.button |= m_gc_pad_buttons_bitmask[8];
 			}
-		    else if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
-			{
-			    wm_nc *nunchuk = (wm_nc *)(WiimoteData + WiimoteRptf.ext);
-			    WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
+		    else if (nunchuk)
+		    {
 			    nunchuk->bt.hex &= ~WiimoteEmu::Nunchuk::BUTTON_Z;
-			    WiimoteEncrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 			}
 		}
 		else if (!strcmp(button, "L"))
@@ -783,16 +796,18 @@ namespace Lua
 			    PadLocal.triggerLeft = 255;
 			    PadLocal.button |= m_gc_pad_buttons_bitmask[9];
 			}
-		    else if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
+		    else if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::TRIGGER_L;
+			    cc->lt1 = 31 & 0x7; // set the analog input to max value of 31
+			    cc->lt2 = (31 >> 3) & 0x3;
 		    } 
 		}
 	    else if (!strcmp(button, "ZL"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_ZL;
 		    }
 	    }
 		else if (!strcmp(button, "R"))
@@ -802,16 +817,17 @@ namespace Lua
 				PadLocal.triggerRight = 255;
 				PadLocal.button |= m_gc_pad_buttons_bitmask[10];
 		    }
-		    else if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
+		    else if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::TRIGGER_R;
+			    cc->rt = 31; // max value
 		    } 
 		}
 	    else if (!strcmp(button, "ZR"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_ZR;
 		    }
 	    }
 		else if (!strcmp(button, "Start"))
@@ -825,9 +841,9 @@ namespace Lua
 			{
 				PadLocal.button |= m_gc_pad_buttons_bitmask[1];
 			}
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
-			{
-
+		    else if (cc)
+		    {
+			    cc->bt.hex &= ~WiimoteEmu::Classic::PAD_UP;
 			}
 			else
 		    {
@@ -840,9 +856,9 @@ namespace Lua
 		    {
 			    PadLocal.button |= m_gc_pad_buttons_bitmask[0];
 		    }
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    else if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::PAD_DOWN;
 		    }
 		    else
 		    {
@@ -855,9 +871,9 @@ namespace Lua
 			{
 			    PadLocal.button |= m_gc_pad_buttons_bitmask[2];
 		    }
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    else if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::PAD_LEFT;
 		    }
 		    else
 		    {
@@ -870,9 +886,9 @@ namespace Lua
 			{
 			    PadLocal.button |= m_gc_pad_buttons_bitmask[3];
 		    }
-		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    else if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::PAD_RIGHT;
 		    }
 		    else
 		    {
@@ -881,19 +897,16 @@ namespace Lua
 		}
 	    else if (!strcmp(button, "C"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
+		    if (nunchuk)
 		    {
-			    wm_nc *nunchuk = (wm_nc *)(WiimoteData + WiimoteRptf.ext);
-			    WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 			    nunchuk->bt.hex &= ~WiimoteEmu::Nunchuk::BUTTON_C;
-			    WiimoteEncrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 		    }
 	    }
 	    else if (!strcmp(button, "Home") || !strcmp(button, "HOME"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_HOME;
 		    }
 		    else
 		    {
@@ -902,9 +915,9 @@ namespace Lua
 	    }
 	    else if (!strcmp(button, "+"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_PLUS;
 		    }
 		    else
 		    {
@@ -913,9 +926,9 @@ namespace Lua
 	    }
 	    else if (!strcmp(button, "-"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    if (cc)
 		    {
-
+			    cc->bt.hex &= ~WiimoteEmu::Classic::BUTTON_MINUS;
 		    }
 		    else
 		    {
@@ -924,24 +937,22 @@ namespace Lua
 	    }
 	    else if (!strcmp(button, "1"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
-		    {
-		    }
-		    else
+		    if (cc == nullptr)
 		    {
 			    ((wm_buttons *)(WiimoteData + WiimoteRptf.core))->hex |= WiimoteEmu::Wiimote::BUTTON_ONE;
 		    }
 	    }
 	    else if (!strcmp(button, "2"))
 	    {
-		    if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
-		    {
-		    }
-		    else
+		    if (cc == nullptr)
 		    {
 			    ((wm_buttons *)(WiimoteData + WiimoteRptf.core))->hex |= WiimoteEmu::Wiimote::BUTTON_TWO;
 		    }
 	    }
+
+		// fix extension encryption
+		if (cc) WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+	    if (nunchuk) WiimoteEncrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 	}
     void iReleaseButton(const char *button, int controllerID)
     {
@@ -1069,8 +1080,11 @@ namespace Lua
 		    WiimoteEncrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
 		}
 	    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
-		{
-			// JL x
+	    {
+		    wm_classic_extension *cc = (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext);
+		    WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+		    cc->regular_data.lx = clamp(xVal, 0, 63);
+		    WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
 		}
 	}
     void iSetMainStickY(int yVal, int controllerID)
@@ -1093,7 +1107,10 @@ namespace Lua
 	    }
 	    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
 	    {
-		    // JL y
+		    wm_classic_extension *cc = (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext);
+		    WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+		    cc->regular_data.ly = clamp(yVal, 0, 63);
+		    WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
 	    }
 	}
     void iSetCStickX(int xVal, int controllerID)
@@ -1109,7 +1126,13 @@ namespace Lua
 		}
 	    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
 		{
-			// JR x
+		    wm_classic_extension *cc = (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext);
+		    WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+		    xVal = clamp(xVal, 0, 31);
+		    cc->rx1 = xVal & 0x1;
+		    cc->rx2 = (xVal >> 1) & 0x3;
+		    cc->rx3 = (xVal >> 3) & 0x3;
+		    WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
 		}
 	}
     void iSetCStickY(int yVal, int controllerID)
@@ -1125,7 +1148,10 @@ namespace Lua
 	    }
 	    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
 	    {
-		    // JR y
+		    wm_classic_extension *cc = (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext);
+		    WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+		    cc->ry = clamp(yVal, 0, 31);
+		    WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
 	    }
 	}
 	int iSetIRBytes(int bytes[], int numBytes, int controllerID)
@@ -1315,6 +1341,11 @@ namespace Lua
 		}
 	    return key;
 	}
+    int iGetWiimoteExtension(int *controllerID)
+    {
+	    *controllerID = currentControllerID;
+	    return UpdateGCC ? -1 : WiimoteExt;
+	}
     int GetButtons(lua_State *L)
     {
 	    printf("buttons\n");
@@ -1341,7 +1372,26 @@ namespace Lua
 		}
 	    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
 	    {
-	    
+		    wm_classic_extension *cc = (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext);
+		    WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+		    cc->bt.hex ^= 0xFFFF;
+		    lua_pushtableentry(L, "LEFT", cc->bt.hex & WiimoteEmu::Classic::PAD_LEFT);
+		    lua_pushtableentry(L, "RIGHT", cc->bt.hex & WiimoteEmu::Classic::PAD_RIGHT);
+		    lua_pushtableentry(L, "UP", cc->bt.hex & WiimoteEmu::Classic::PAD_UP);
+		    lua_pushtableentry(L, "DOWN", cc->bt.hex & WiimoteEmu::Classic::PAD_DOWN);
+		    lua_pushtableentry(L, "A", cc->bt.hex & WiimoteEmu::Classic::BUTTON_A);
+		    lua_pushtableentry(L, "B", cc->bt.hex & WiimoteEmu::Classic::BUTTON_B);
+		    lua_pushtableentry(L, "X", cc->bt.hex & WiimoteEmu::Classic::BUTTON_X);
+		    lua_pushtableentry(L, "Y", cc->bt.hex & WiimoteEmu::Classic::BUTTON_Y);
+		    lua_pushtableentry(L, "+", cc->bt.hex & WiimoteEmu::Classic::BUTTON_PLUS);
+		    lua_pushtableentry(L, "-", cc->bt.hex & WiimoteEmu::Classic::BUTTON_MINUS);
+		    lua_pushtableentry(L, "HOME", cc->bt.hex & WiimoteEmu::Classic::BUTTON_HOME);
+		    lua_pushtableentry(L, "ZL", cc->bt.hex & WiimoteEmu::Classic::BUTTON_ZL);
+		    lua_pushtableentry(L, "ZR", cc->bt.hex & WiimoteEmu::Classic::BUTTON_ZR);
+		    lua_pushtableentry(L, "L", cc->bt.hex & WiimoteEmu::Classic::TRIGGER_L); // just check this bit
+		    lua_pushtableentry(L, "R", cc->bt.hex & WiimoteEmu::Classic::TRIGGER_R); // (only on at max value)
+		    cc->bt.hex ^= 0xFFFF;
+		    WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
 		}
 	    else
 		{
@@ -1529,6 +1579,7 @@ namespace Lua
 		lua_register(luaState, "SetCStickY", SetCStickY);
 
 	    lua_register(luaState, "GetWiimoteKey", GetWiimoteKey); // Xander: wiimote + extension controls
+	    lua_register(luaState, "GetWiimoteExtension", GetWiimoteExtension);
 	    lua_register(luaState, "GetButtons", Lua::GetButtons);
 	    lua_register(luaState, "SetIRX", SetIRX);
 	    lua_register(luaState, "SetIRY", SetIRY);
