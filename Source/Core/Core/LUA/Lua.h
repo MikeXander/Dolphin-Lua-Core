@@ -115,6 +115,8 @@ namespace Lua
     int iGetWiimoteExtension(int *controllerID);
     int GetButtons(lua_State *L);
     int GetIR(lua_State *L);
+    int GetMainStick(lua_State *L);
+    int GetCStick(lua_State *L);
 	void iSaveState(bool toSlot, int slotID, std::string fileName);
 	void iLoadState(bool fromSlot, int slotID, std::string fileName);
 	void iCancelCurrentScript();

@@ -53,7 +53,7 @@ Notes for every function:
   -   4 to 7 correspond to Wiimotes 1 to 4
   -   this parameter is optional. If no CID is given (or -1), it will apply the function to all controllers
       -   Ex. PressButton("A") will press A with every conntected controller
-- The classic controller extension is currently unsupported because I'm lazy and don't know anyone who TASes with it
+      -   Ex. GetIR(5) will return the IR only during input polls for Wiimote 2, and nil during other input polls
 - for the IR functions, (0, 0) is the Top Right of the screen
 - Currently, functions that have inputs within some range have undefined behaviour when given input outside those ranges
 
@@ -64,7 +64,7 @@ function PressButton(Button, ControllerID) end
 -- Button: One of the following strings:
 --     "A", "B", "X", "Y", "Z", "L", "ZL", "R", "ZR", "Start", "UP" or "D-Up", "DOWN" or "D-Down", "LEFT" or "D-Left", "RIGHT" or "D-Right", "C", "+", "-", "HOME", "1", "2"
 -- If the controller doesn't have the specified button, or button is any other string, the function call will simply be ignored.
--- For GameCube Controllers, "L" and "R" set the shoulder buttons to the maximum value of 255. 
+-- For GCCs and classic controllers, "L" and "R" set the shoulder buttons to the maximum value (255 and 31 respectively). 
 
 
 function ReleaseButton(Button, ControllerID) end
@@ -76,6 +76,12 @@ function GetWiimoteKey(ControllerID) end
 -- This returns the controller for the current input poll, and a string containing it's Extension decryption key
 -- The key will be all 0s if it does not have a wiimote extension
 -- returns: ControllerID, Key
+
+
+function GetWiimoteExtension() end
+-- This returns the controller for the current input poll, and an integer representing the type of extension
+-- GCC = -1 (i.e. not a Wiimote poll), None = 0, Nunchuk = 1, Classic = 2
+-- returns: ControllerID, ExtensionID
 
 
 function SetIRX(X, ControllerID) end
@@ -123,17 +129,20 @@ function GetNunchukAccel(ControllerID) end
 
 function SetMainStickX(X, ControllerID) end
 function SetMainStickY(Y, ControllerID) end
--- these set the X/Y coordinate for the main control stick
--- For wiimotes, this sets the nunchuk stick
--- returns: nil
--- X, Y: integers from 0 to 255 (inclusive)
-
-
 function SetCStickX(X, ControllerID) end
 function SetCStickY(Y, ControllerID) end
--- sets the X/Y coordinate for the secondary stick (C/R-Stick)
+-- these set the X/Y coordinate for the left and right control sticks respectively
+-- Works for GCC, nunchuk, and classic controllers
 -- returns: nil
--- X, Y: integers from 0 to 255 (inclusive)
+-- X, Y: integers clamped to their respective ranges
+-- 0 to 255 for GCC (both) and nunchuk
+-- 0 to 63 for classic controller left stick
+-- 0 to 31 for classic controller right stick
+
+
+function GetMainStick(ControllerID) end
+function GetCStick(ControllerID) end
+-- returns: X, Y (or nil if controller doesn't have corresponding control stick)
 
 
 function SetIRBytes(ControllerID, bytes, ...) end

@@ -1474,6 +1474,65 @@ namespace Lua
 	    }
 	    return 0;
     }
+    int GetMainStick(lua_State *L)
+    {
+	    int controller = ANY_CONTROLLER;
+	    if (lua_gettop(L) > 0)
+		    controller = lua_tointeger(L, 1);
+	    if (controller == currentControllerID || controller == ANY_CONTROLLER)
+		{
+		    if (UpdateGCC)
+		    {
+			    lua_pushinteger(L, PadLocal.stickX);
+			    lua_pushinteger(L, PadLocal.stickY);
+			    return 2;
+		    }
+		    else if (WiimoteRptf.ext && WiimoteExt == NUNCHUK)
+		    {
+			    wm_nc *nunchuk = (wm_nc *)(WiimoteData + WiimoteRptf.ext);
+			    WiimoteDecrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
+			    lua_pushinteger(L, nunchuk->jx);
+			    lua_pushinteger(L, nunchuk->jy);
+			    WiimoteEncrypt(WiimoteKey, (u8 *)nunchuk, 0, sizeof(wm_nc));
+			    return 2;
+		    }
+		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    {
+			    wm_classic_extension *cc = (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext);
+			    WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+			    lua_pushinteger(L, cc->regular_data.lx);
+			    lua_pushinteger(L, cc->regular_data.ly);
+			    WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+			    return 2;
+		    }
+		}
+	    return 0;
+    }
+    int GetCStick(lua_State *L)
+    {
+	    int controller = ANY_CONTROLLER;
+	    if (lua_gettop(L) > 0)
+		    controller = lua_tointeger(L, 1);
+	    if (controller == currentControllerID || controller == ANY_CONTROLLER)
+	    {
+		    if (UpdateGCC)
+		    {
+			    lua_pushinteger(L, PadLocal.substickX);
+			    lua_pushinteger(L, PadLocal.substickY);
+			    return 2;
+		    }
+		    else if (WiimoteRptf.ext && WiimoteExt == CLASSIC)
+		    {
+			    wm_classic_extension *cc = (wm_classic_extension *)(WiimoteData + WiimoteRptf.ext);
+			    WiimoteDecrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+			    lua_pushinteger(L, cc->rx1 + (cc->rx2 << 1) + (cc->rx3 << 3));
+			    lua_pushinteger(L, cc->ry);
+			    WiimoteEncrypt(WiimoteKey, (u8 *)cc, 0, sizeof(wm_classic_extension));
+			    return 2;
+		    }
+	    }
+	    return 0;
+    }
 	void iSaveState(bool toSlot, int slotID, std::string fileName)
 	{
 		m_stateData.doSave = true;
@@ -1577,6 +1636,8 @@ namespace Lua
 		lua_register(luaState, "SetMainStickY", SetMainStickY);
 		lua_register(luaState, "SetCStickX", SetCStickX);
 		lua_register(luaState, "SetCStickY", SetCStickY);
+	    lua_register(luaState, "GetMainStick", Lua::GetMainStick);
+	    lua_register(luaState, "GetCStick", Lua::GetCStick);
 
 	    lua_register(luaState, "GetWiimoteKey", GetWiimoteKey); // Xander: wiimote + extension controls
 	    lua_register(luaState, "GetWiimoteExtension", GetWiimoteExtension);
