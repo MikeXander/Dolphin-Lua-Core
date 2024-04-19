@@ -109,7 +109,7 @@ std::string LuaWindow::getLoadedScriptString()
 	if (selectedScriptName == wxEmptyString || selectedScriptName.Len() < 3)
 	{
 		wxMessageBox("No script selected!");
-		return;
+		return "";
 	}
 
 	return WxStrToStr(selectedScriptName);

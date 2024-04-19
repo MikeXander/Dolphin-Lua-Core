@@ -292,9 +292,9 @@ class CFrame : public CRenderFrame
 	void OnUndoSaveState(wxCommandEvent &event);
 
 	void OnScriptRun(wxCommandEvent &event);
-	void OnScriptTerminate(wxCommandEvent &event)
+	void OnScriptTerminate(wxCommandEvent &event);
 
-	    void OnFrameSkip(wxCommandEvent &event);
+	void OnFrameSkip(wxCommandEvent &event);
 	void OnFrameStep(wxCommandEvent &event);
 
 	void OnConfigMain(wxCommandEvent &event); // Options
