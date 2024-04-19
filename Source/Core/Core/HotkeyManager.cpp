@@ -8,126 +8,64 @@
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
 #include "Core/HotkeyManager.h"
+#include "HotkeyManager.h"
 #include "InputCommon/GCPadStatus.h"
 
-const std::string hotkey_labels[] =
-{
-	_trans("Open"),
-	_trans("Change Disc"),
-	_trans("Refresh List"),
+const std::string hotkey_labels[] = {
+    _trans("Open"), _trans("Change Disc"), _trans("Refresh List"),
 
-	_trans("Toggle Pause"),
-	_trans("Stop"),
-	_trans("Reset"),
-	_trans("Frame Advance"),
-	_trans("Frame Advance Decrease Speed"),
-	_trans("Frame Advance Increase Speed"),
-	_trans("Frame Advance Reset Speed"),
+    _trans("Toggle Pause"), _trans("Stop"), _trans("Reset"), _trans("Frame Advance"),
+    _trans("Frame Advance Decrease Speed"), _trans("Frame Advance Increase Speed"), _trans("Frame Advance Reset Speed"),
 
-	_trans("Start Recording"),
-	_trans("Play Recording"),
-	_trans("Export Recording"),
-	_trans("Read-only mode"),
+    _trans("Start Recording"), _trans("Play Recording"), _trans("Export Recording"), _trans("Read-only mode"),
 
-	_trans("Toggle Fullscreen"),
-	_trans("Take Screenshot"),
-	_trans("Exit"),
+    _trans("Toggle Fullscreen"), _trans("Take Screenshot"), _trans("Exit"),
 
-	_trans("Connect Wiimote 1"),
-	_trans("Connect Wiimote 2"),
-	_trans("Connect Wiimote 3"),
-	_trans("Connect Wiimote 4"),
-	_trans("Connect Balance Board"),
+    _trans("Connect Wiimote 1"), _trans("Connect Wiimote 2"), _trans("Connect Wiimote 3"), _trans("Connect Wiimote 4"),
+    _trans("Connect Balance Board"),
 
-	_trans("Volume Down"),
-	_trans("Volume Up"),
-	_trans("Volume Toggle Mute"),
+    _trans("Volume Down"), _trans("Volume Up"), _trans("Volume Toggle Mute"),
 
-	_trans("Increase IR"),
-	_trans("Decrease IR"),
+    _trans("Increase IR"), _trans("Decrease IR"),
 
-	_trans("Toggle Crop"),
-	_trans("Toggle Aspect Ratio"),
-	_trans("Toggle EFB Copies"),
-	_trans("Toggle Fog"),
-	_trans("Disable Emulation Speed Limit"),
-	_trans("Decrease Emulation Speed"),
-	_trans("Increase Emulation Speed"),
+    _trans("Toggle Crop"), _trans("Toggle Aspect Ratio"), _trans("Toggle EFB Copies"), _trans("Toggle Fog"),
+    _trans("Disable Emulation Speed Limit"), _trans("Decrease Emulation Speed"), _trans("Increase Emulation Speed"),
 
-	_trans("Freelook Decrease Speed"),
-	_trans("Freelook Increase Speed"),
-	_trans("Freelook Reset Speed"),
-	_trans("Freelook Move Up"),
-	_trans("Freelook Move Down"),
-	_trans("Freelook Move Left"),
-	_trans("Freelook Move Right"),
-	_trans("Freelook Zoom In"),
-	_trans("Freelook Zoom Out"),
-	_trans("Freelook Reset"),
+    _trans("Freelook Decrease Speed"), _trans("Freelook Increase Speed"), _trans("Freelook Reset Speed"),
+    _trans("Freelook Move Up"), _trans("Freelook Move Down"), _trans("Freelook Move Left"),
+    _trans("Freelook Move Right"), _trans("Freelook Zoom In"), _trans("Freelook Zoom Out"), _trans("Freelook Reset"),
 
-	_trans("Toggle 3D Side-by-side"),
-	_trans("Toggle 3D Top-bottom"),
-	_trans("Toggle 3D Anaglyph"),
-	_trans("Toggle 3D Vision"),
+    _trans("Toggle 3D Side-by-side"), _trans("Toggle 3D Top-bottom"), _trans("Toggle 3D Anaglyph"),
+    _trans("Toggle 3D Vision"),
 
-	_trans("Decrease Depth"),
-	_trans("Increase Depth"),
-	_trans("Decrease Convergence"),
-	_trans("Increase Convergence"),
+    _trans("Decrease Depth"), _trans("Increase Depth"), _trans("Decrease Convergence"), _trans("Increase Convergence"),
 
-	_trans("Load State Slot 1"),
-	_trans("Load State Slot 2"),
-	_trans("Load State Slot 3"),
-	_trans("Load State Slot 4"),
-	_trans("Load State Slot 5"),
-	_trans("Load State Slot 6"),
-	_trans("Load State Slot 7"),
-	_trans("Load State Slot 8"),
-	_trans("Load State Slot 9"),
-	_trans("Load State Slot 10"),
+    _trans("Load State Slot 1"), _trans("Load State Slot 2"), _trans("Load State Slot 3"), _trans("Load State Slot 4"),
+    _trans("Load State Slot 5"), _trans("Load State Slot 6"), _trans("Load State Slot 7"), _trans("Load State Slot 8"),
+    _trans("Load State Slot 9"), _trans("Load State Slot 10"),
 
-	_trans("Save State Slot 1"),
-	_trans("Save State Slot 2"),
-	_trans("Save State Slot 3"),
-	_trans("Save State Slot 4"),
-	_trans("Save State Slot 5"),
-	_trans("Save State Slot 6"),
-	_trans("Save State Slot 7"),
-	_trans("Save State Slot 8"),
-	_trans("Save State Slot 9"),
-	_trans("Save State Slot 10"),
+    _trans("Save State Slot 1"), _trans("Save State Slot 2"), _trans("Save State Slot 3"), _trans("Save State Slot 4"),
+    _trans("Save State Slot 5"), _trans("Save State Slot 6"), _trans("Save State Slot 7"), _trans("Save State Slot 8"),
+    _trans("Save State Slot 9"), _trans("Save State Slot 10"),
 
-	_trans("Select State Slot 1"),
-	_trans("Select State Slot 2"),
-	_trans("Select State Slot 3"),
-	_trans("Select State Slot 4"),
-	_trans("Select State Slot 5"),
-	_trans("Select State Slot 6"),
-	_trans("Select State Slot 7"),
-	_trans("Select State Slot 8"),
-	_trans("Select State Slot 9"),
-	_trans("Select State Slot 10"),
+    _trans("Select State Slot 1"), _trans("Select State Slot 2"), _trans("Select State Slot 3"),
+    _trans("Select State Slot 4"), _trans("Select State Slot 5"), _trans("Select State Slot 6"),
+    _trans("Select State Slot 7"), _trans("Select State Slot 8"), _trans("Select State Slot 9"),
+    _trans("Select State Slot 10"),
 
-	_trans("Save to selected slot"),
-	_trans("Load from selected slot"),
+    _trans("Save to selected slot"), _trans("Load from selected slot"),
 
-	_trans("Load State Last 1"),
-	_trans("Load State Last 2"),
-	_trans("Load State Last 3"),
-	_trans("Load State Last 4"),
-	_trans("Load State Last 5"),
-	_trans("Load State Last 6"),
-	_trans("Load State Last 7"),
-	_trans("Load State Last 8"),
-	_trans("Load State Last 9"),
-	_trans("Load State Last 10"),
+    _trans("Load State Last 1"), _trans("Load State Last 2"), _trans("Load State Last 3"), _trans("Load State Last 4"),
+    _trans("Load State Last 5"), _trans("Load State Last 6"), _trans("Load State Last 7"), _trans("Load State Last 8"),
+    _trans("Load State Last 9"), _trans("Load State Last 10"),
 
-	_trans("Save Oldest State"),
-	_trans("Undo Load State"),
-	_trans("Undo Save State"),
-	_trans("Save State"),
-	_trans("Load State"),
-};
+    _trans("Save Oldest State"), _trans("Undo Load State"), _trans("Undo Save State"), _trans("Save State"),
+    _trans("Load State"),
+
+    _trans("Run Script");
+_trans("Cancel Script");
+}
+;
 static_assert(NUM_HOTKEYS == sizeof(hotkey_labels) / sizeof(hotkey_labels[0]), "Wrong count of hotkey_labels");
 
 namespace HotkeyManagerEmu
@@ -139,7 +77,7 @@ static bool s_enabled;
 
 static InputConfig s_config("Hotkeys", _trans("Hotkeys"), "Hotkeys");
 
-InputConfig* GetConfig()
+InputConfig *GetConfig()
 {
 	return &s_config;
 }
@@ -149,7 +87,7 @@ void GetStatus()
 	s_hotkey.err = PAD_ERR_NONE;
 
 	// Get input
-	static_cast<HotkeyManager*>(s_config.GetController(0))->GetInput(&s_hotkey);
+	static_cast<HotkeyManager *>(s_config.GetController(0))->GetInput(&s_hotkey);
 }
 
 bool IsEnabled()
@@ -181,7 +119,7 @@ bool IsPressed(int Id, bool held)
 	return false;
 }
 
-void Initialize(void* const hwnd)
+void Initialize(void *const hwnd)
 {
 	if (s_config.ControllersNeedToBeCreated())
 		s_config.CreateController<HotkeyManager>();
@@ -191,7 +129,7 @@ void Initialize(void* const hwnd)
 	// load the saved controller config
 	s_config.LoadConfig(true);
 
-	for (u32& key : s_hotkeyDown)
+	for (u32 &key : s_hotkeyDown)
 		key = 0;
 
 	s_enabled = true;
@@ -209,7 +147,7 @@ void Shutdown()
 	g_controller_interface.Shutdown();
 }
 
-}
+} // namespace HotkeyManagerEmu
 
 HotkeyManager::HotkeyManager()
 {
@@ -228,16 +166,14 @@ HotkeyManager::HotkeyManager()
 	m_options->settings.emplace_back(new ControlGroup::IterateUI(_trans("Iterative Input")));
 }
 
-HotkeyManager::~HotkeyManager()
-{
-}
+HotkeyManager::~HotkeyManager() {}
 
 std::string HotkeyManager::GetName() const
 {
 	return std::string("Hotkeys") + char('1' + 0);
 }
 
-void HotkeyManager::GetInput(HotkeyStatus* const kb)
+void HotkeyManager::GetInput(HotkeyStatus *const kb)
 {
 	for (int set = 0; set < (NUM_HOTKEYS + 31) / 32; set++)
 	{
@@ -250,7 +186,7 @@ void HotkeyManager::GetInput(HotkeyStatus* const kb)
 	}
 }
 
-void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
+void HotkeyManager::LoadDefaults(const ControllerInterface &ciface)
 {
 	ControllerEmu::LoadDefaults(ciface);
 
@@ -266,9 +202,8 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	const std::string CTRL = "(!`Alt_L` & !(`Shift_L` | `Shift_R`) & (`Control_L` | `Control_R` ))";
 #endif
 
-	auto set_key_expression = [this](int index, const std::string& expression) {
-		m_keys[index / 32]->controls[index % 32]->control_ref->expression = expression;
-	};
+	auto set_key_expression = [this](int index, const std::string &expression)
+	{ m_keys[index / 32]->controls[index % 32]->control_ref->expression = expression; };
 
 	// General hotkeys
 	set_key_expression(HK_OPEN, CTRL + " & O");
@@ -312,4 +247,7 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	}
 	set_key_expression(HK_UNDO_LOAD_STATE, NON + " & `F12`");
 	set_key_expression(HK_UNDO_SAVE_STATE, SHIFT + " & `F12`");
+
+	set_key_expression(HK_RUN_SCRIPT, SHIFT + " & LBRACKET");
+	set_key_expression(HK_CANCEL_SCRIPT, SHIFT + " & RBRACKET");
 }

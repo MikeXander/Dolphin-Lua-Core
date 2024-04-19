@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Globals.h"
 #ifdef __APPLE__
 #include <Cocoa/Cocoa.h>
 #endif
@@ -11,6 +12,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <wx/aui/auibook.h>
+#include <wx/aui/framemanager.h>
 #include <wx/filename.h>
 #include <wx/frame.h>
 #include <wx/icon.h>
@@ -22,26 +25,25 @@
 #include <wx/statusbr.h>
 #include <wx/textctrl.h>
 #include <wx/thread.h>
-#include <wx/aui/auibook.h>
-#include <wx/aui/framemanager.h>
 
 #include "AudioCommon/AudioCommon.h"
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/Thread.h"
 #include "Common/Logging/ConsoleListener.h"
+#include "Common/Thread.h"
 
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/HotkeyManager.h"
-#include "Core/Movie.h"
-#include "Core/State.h"
 #include "Core/HW/DVDInterface.h"
 #include "Core/HW/GCKeyboard.h"
 #include "Core/HW/GCPad.h"
 #include "Core/HW/Wiimote.h"
+#include "Core/HotkeyManager.h"
+#include "Core/Movie.h"
+#include "Core/State.h"
 
+#include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/GameListCtrl.h"
 #include "DolphinWX/Globals.h"
@@ -49,7 +51,6 @@
 #include "DolphinWX/Main.h"
 #include "DolphinWX/TASInputDlg.h"
 #include "DolphinWX/WxUtils.h"
-#include "DolphinWX/Debugger/CodeWindow.h"
 
 #include "InputCommon/GCPadStatus.h"
 
@@ -64,7 +65,8 @@ int g_saveSlot = 1;
 
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
-namespace X11Utils {
+namespace X11Utils
+{
 
 Window XWindowFromHandle(void *Handle)
 {
@@ -76,12 +78,12 @@ Display *XDisplayFromHandle(void *Handle)
 	return GDK_WINDOW_XDISPLAY(gtk_widget_get_window(GTK_WIDGET(Handle)));
 }
 
-}
+} // namespace X11Utils
 #endif
 
-CRenderFrame::CRenderFrame(wxFrame* parent, wxWindowID id, const wxString& title,
-		const wxPoint& pos, const wxSize& size, long style)
-	: wxFrame(parent, id, title, pos, size, style)
+CRenderFrame::CRenderFrame(wxFrame *parent, wxWindowID id, const wxString &title, const wxPoint &pos,
+                           const wxSize &size, long style)
+    : wxFrame(parent, id, title, pos, size, style)
 {
 	// Give it an icon
 	wxIcon IconTemp;
@@ -92,7 +94,7 @@ CRenderFrame::CRenderFrame(wxFrame* parent, wxWindowID id, const wxString& title
 	Bind(wxEVT_DROP_FILES, &CRenderFrame::OnDropFiles, this);
 }
 
-void CRenderFrame::OnDropFiles(wxDropFilesEvent& event)
+void CRenderFrame::OnDropFiles(wxDropFilesEvent &event)
 {
 	if (event.GetNumberOfFiles() != 1)
 		return;
@@ -131,7 +133,7 @@ void CRenderFrame::OnDropFiles(wxDropFilesEvent& event)
 	}
 }
 
-bool CRenderFrame::IsValidSavestateDropped(const std::string& filepath)
+bool CRenderFrame::IsValidSavestateDropped(const std::string &filepath)
 {
 	const int game_id_length = 6;
 	std::ifstream file(filepath, std::ios::in | std::ios::binary);
@@ -150,43 +152,44 @@ WXLRESULT CRenderFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lPa
 {
 	switch (nMsg)
 	{
-		case WM_SYSCOMMAND:
-			switch (wParam)
-			{
-				case SC_SCREENSAVE:
-				case SC_MONITORPOWER:
-					if (Core::GetState() == Core::CORE_RUN && SConfig::GetInstance().bDisableScreenSaver)
-						break;
-				default:
-					return wxFrame::MSWWindowProc(nMsg, wParam, lParam);
-			}
-			break;
-
-		case WM_USER:
-			switch (wParam)
-			{
-			case WM_USER_STOP:
-				main_frame->DoStop();
+	case WM_SYSCOMMAND:
+		switch (wParam)
+		{
+		case SC_SCREENSAVE:
+		case SC_MONITORPOWER:
+			if (Core::GetState() == Core::CORE_RUN && SConfig::GetInstance().bDisableScreenSaver)
 				break;
-
-			case WM_USER_SETCURSOR:
-				if (SConfig::GetInstance().bHideCursor &&
-					main_frame->RendererHasFocus() && Core::GetState() == Core::CORE_RUN)
-					SetCursor(wxCURSOR_BLANK);
-				else
-					SetCursor(wxNullCursor);
-				break;
-			}
-			break;
-
-		case WM_CLOSE:
-			// Let Core finish initializing before accepting any WM_CLOSE messages
-			if (!Core::IsRunning()) break;
-			// Use default action otherwise
-
 		default:
-			// By default let wxWidgets do what it normally does with this event
 			return wxFrame::MSWWindowProc(nMsg, wParam, lParam);
+		}
+		break;
+
+	case WM_USER:
+		switch (wParam)
+		{
+		case WM_USER_STOP:
+			main_frame->DoStop();
+			break;
+
+		case WM_USER_SETCURSOR:
+			if (SConfig::GetInstance().bHideCursor && main_frame->RendererHasFocus() &&
+			    Core::GetState() == Core::CORE_RUN)
+				SetCursor(wxCURSOR_BLANK);
+			else
+				SetCursor(wxNullCursor);
+			break;
+		}
+		break;
+
+	case WM_CLOSE:
+		// Let Core finish initializing before accepting any WM_CLOSE messages
+		if (!Core::IsRunning())
+			break;
+		// Use default action otherwise
+
+	default:
+		// By default let wxWidgets do what it normally does with this event
+		return wxFrame::MSWWindowProc(nMsg, wParam, lParam);
 	}
 	return 0;
 }
@@ -280,6 +283,8 @@ EVT_MENU_RANGE(IDM_FLOAT_LOG_WINDOW, IDM_FLOAT_CODE_WINDOW, CFrame::OnFloatWindo
 EVT_MENU(IDM_NETPLAY, CFrame::OnNetPlay)
 EVT_MENU(IDM_MEMCARD, CFrame::OnMemcard)
 EVT_MENU(IDM_SCRIPTLAUNCH, CFrame::OnScriptLaunch) // ADDED
+EVT_MENU(IDM_RUN_SCRIPT, CFrame::OnScriptRun)
+EVT_MENU(IDM_CANCEL_SCRIPT, CFrame::OnScriptTerminate)
 EVT_MENU(IDM_IMPORT_SAVE, CFrame::OnImportSave)
 EVT_MENU(IDM_EXPORT_ALL_SAVE, CFrame::OnExportAllSaves)
 EVT_MENU(IDM_CHEATS, CFrame::OnShowCheatsWindow)
@@ -338,46 +343,51 @@ END_EVENT_TABLE()
 // ---------------
 // Creation and close, quit functions
 
-
 bool CFrame::InitControllers()
 {
 	if (!g_controller_interface.IsInit())
 	{
 #if defined(HAVE_X11) && HAVE_X11
 		Window win = X11Utils::XWindowFromHandle(GetHandle());
-		Pad::Initialize(reinterpret_cast<void*>(win));
-		Keyboard::Initialize(reinterpret_cast<void*>(win));
-		Wiimote::Initialize(reinterpret_cast<void*>(win));
-		HotkeyManagerEmu::Initialize(reinterpret_cast<void*>(win));
+		Pad::Initialize(reinterpret_cast<void *>(win));
+		Keyboard::Initialize(reinterpret_cast<void *>(win));
+		Wiimote::Initialize(reinterpret_cast<void *>(win));
+		HotkeyManagerEmu::Initialize(reinterpret_cast<void *>(win));
 #else
-		Pad::Initialize(reinterpret_cast<void*>(GetHandle()));
-		Keyboard::Initialize(reinterpret_cast<void*>(GetHandle()));
-		Wiimote::Initialize(reinterpret_cast<void*>(GetHandle()));
-		HotkeyManagerEmu::Initialize(reinterpret_cast<void*>(GetHandle()));
+		Pad::Initialize(reinterpret_cast<void *>(GetHandle()));
+		Keyboard::Initialize(reinterpret_cast<void *>(GetHandle()));
+		Wiimote::Initialize(reinterpret_cast<void *>(GetHandle()));
+		HotkeyManagerEmu::Initialize(reinterpret_cast<void *>(GetHandle()));
 #endif
 		return true;
 	}
 	return false;
 }
 
-CFrame::CFrame(wxFrame* parent,
-		wxWindowID id,
-		const wxString& title,
-		const wxPoint& pos,
-		const wxSize& size,
-		bool _UseDebugger,
-		bool _BatchMode,
-		bool ShowLogWindow,
-		long style)
-	: CRenderFrame(parent, id, title, pos, size, style)
-	, g_pCodeWindow(nullptr), g_NetPlaySetupDiag(nullptr), g_CheatsWindow(nullptr)
-	, m_SavedPerspectives(nullptr), m_ToolBar(nullptr)
-	, m_GameListCtrl(nullptr), m_Panel(nullptr)
-	, m_RenderFrame(nullptr), m_RenderParent(nullptr)
-	, m_LogWindow(nullptr), m_LogConfigWindow(nullptr)
-	, m_FifoPlayerDlg(nullptr), UseDebugger(_UseDebugger)
-	, m_bBatchMode(_BatchMode), m_bEdit(false), m_bTabSplit(false), m_bNoDocking(false)
-	, m_bGameLoading(false), m_bClosing(false), m_confirmStop(false), m_menubar_shadow(nullptr)
+CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, const wxPoint &pos, const wxSize &size,
+               bool _UseDebugger, bool _BatchMode, bool ShowLogWindow, long style)
+    : CRenderFrame(parent, id, title, pos, size, style)
+    , g_pCodeWindow(nullptr)
+    , g_NetPlaySetupDiag(nullptr)
+    , g_CheatsWindow(nullptr)
+    , m_SavedPerspectives(nullptr)
+    , m_ToolBar(nullptr)
+    , m_GameListCtrl(nullptr)
+    , m_Panel(nullptr)
+    , m_RenderFrame(nullptr)
+    , m_RenderParent(nullptr)
+    , m_LogWindow(nullptr)
+    , m_LogConfigWindow(nullptr)
+    , m_FifoPlayerDlg(nullptr)
+    , UseDebugger(_UseDebugger)
+    , m_bBatchMode(_BatchMode)
+    , m_bEdit(false)
+    , m_bTabSplit(false)
+    , m_bNoDocking(false)
+    , m_bGameLoading(false)
+    , m_bClosing(false)
+    , m_confirmStop(false)
+    , m_menubar_shadow(nullptr)
 {
 	for (int i = 0; i <= IDM_CODE_WINDOW - IDM_LOG_WINDOW; i++)
 		bFloatWindow[i] = false;
@@ -406,7 +416,7 @@ CFrame::CFrame(wxFrame* parent,
 		GetStatusBar()->Hide();
 
 	// Give it a menu bar
-	wxMenuBar* menubar_active = CreateMenu();
+	wxMenuBar *menubar_active = CreateMenu();
 	SetMenuBar(menubar_active);
 	// Create a menubar to service requests while the real menubar is hidden from the screen
 	m_menubar_shadow = CreateMenu();
@@ -416,9 +426,8 @@ CFrame::CFrame(wxFrame* parent,
 	// This panel is the parent for rendering and it holds the gamelistctrl
 	m_Panel = new wxPanel(this, IDM_MPANEL, wxDefaultPosition, wxDefaultSize, 0);
 
-	m_GameListCtrl = new CGameListCtrl(m_Panel, wxID_ANY,
-	        wxDefaultPosition, wxDefaultSize,
-	        wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT);
+	m_GameListCtrl = new CGameListCtrl(m_Panel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+	                                   wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT);
 	m_GameListCtrl->Bind(wxEVT_LIST_ITEM_ACTIVATED, &CFrame::OnGameListCtrlItemActivated, this);
 
 	wxBoxSizer *sizerPanel = new wxBoxSizer(wxHORIZONTAL);
@@ -430,17 +439,28 @@ CFrame::CFrame(wxFrame* parent,
 	m_Mgr = new wxAuiManager(this, wxAUI_MGR_DEFAULT | wxAUI_MGR_LIVE_RESIZE);
 
 	m_Mgr->AddPane(m_Panel, wxAuiPaneInfo()
-			.Name("Pane 0").Caption("Pane 0").PaneBorder(false)
-			.CaptionVisible(false).Layer(0).Center().Show());
+	                            .Name("Pane 0")
+	                            .Caption("Pane 0")
+	                            .PaneBorder(false)
+	                            .CaptionVisible(false)
+	                            .Layer(0)
+	                            .Center()
+	                            .Show());
 	if (!g_pCodeWindow)
 		m_Mgr->AddPane(CreateEmptyNotebook(), wxAuiPaneInfo()
-				.Name("Pane 1").Caption(_("Logging")).CaptionVisible(true)
-				.Layer(0).FloatingSize(wxSize(600, 350)).CloseButton(true).Hide());
+		                                          .Name("Pane 1")
+		                                          .Caption(_("Logging"))
+		                                          .CaptionVisible(true)
+		                                          .Layer(0)
+		                                          .FloatingSize(wxSize(600, 350))
+		                                          .CloseButton(true)
+		                                          .Hide());
 	AuiFullscreen = m_Mgr->SavePerspective();
 
 	// Create toolbar
 	RecreateToolbar();
-	if (!SConfig::GetInstance().m_InterfaceToolbar) DoToggleToolbar(false);
+	if (!SConfig::GetInstance().m_InterfaceToolbar)
+		DoToggleToolbar(false);
 
 	m_LogWindow = new CLogWindow(this, IDM_LOG_WINDOW);
 	m_LogWindow->Hide();
@@ -453,18 +473,17 @@ CFrame::CFrame(wxFrame* parent,
 	for (int i = 0; i < 8; ++i)
 		g_TASInputDlg[i] = new TASInputDlg(this);
 
-	Movie::SetTAStudioManip(TAStudioManip); // TAStudio - Added by THC98
+	Movie::SetTAStudioManip(TAStudioManip);       // TAStudio - Added by THC98
 	Movie::SetTAStudioReceiver(TAStudioReceiver); // TAStudio - Added by THC98
 
-	Movie::SetGCInputManip([this](GCPadStatus* pad, int controller_id)
-	{
-		main_frame->g_TASInputDlg[controller_id]->GetValues(pad);
-	}, Movie::GCManipIndex::TASInputGCManip);
+	Movie::SetGCInputManip([this](GCPadStatus *pad, int controller_id)
+	                       { main_frame->g_TASInputDlg[controller_id]->GetValues(pad); },
+	                       Movie::GCManipIndex::TASInputGCManip);
 
-	Movie::SetWiiInputManip([this](u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
-	{
-		main_frame->g_TASInputDlg[controllerID + 4]->GetValues(data, rptf, ext, key);
-	}, Movie::WiiManipIndex::TASInputWiiManip);
+	Movie::SetWiiInputManip(
+	    [this](u8 *data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
+	    { main_frame->g_TASInputDlg[controllerID + 4]->GetValues(data, rptf, ext, key); },
+	    Movie::WiiManipIndex::TASInputWiiManip);
 
 	State::SetOnAfterLoadCallback(OnAfterLoadCallback);
 	Core::SetOnStoppedCallback(OnStoppedCallback);
@@ -492,15 +511,15 @@ CFrame::CFrame(wxFrame* parent,
 	// Commit
 	m_Mgr->Update();
 
-	#ifdef _WIN32
-		SetToolTip("");
-		GetToolTip()->SetAutoPop(25000);
-	#endif
+#ifdef _WIN32
+	SetToolTip("");
+	GetToolTip()->SetAutoPop(25000);
+#endif
 
-	#if defined(HAVE_XRANDR) && HAVE_XRANDR
-		m_XRRConfig = new X11Utils::XRRConfiguration(X11Utils::XDisplayFromHandle(GetHandle()),
-				X11Utils::XWindowFromHandle(GetHandle()));
-	#endif
+#if defined(HAVE_XRANDR) && HAVE_XRANDR
+	m_XRRConfig = new X11Utils::XRRConfiguration(X11Utils::XDisplayFromHandle(GetHandle()),
+	                                             X11Utils::XWindowFromHandle(GetHandle()));
+#endif
 
 	// -------------------------
 	// Connect event handlers
@@ -530,9 +549,9 @@ CFrame::~CFrame()
 
 	drives.clear();
 
-	#if defined(HAVE_XRANDR) && HAVE_XRANDR
-		delete m_XRRConfig;
-	#endif
+#if defined(HAVE_XRANDR) && HAVE_XRANDR
+	delete m_XRRConfig;
+#endif
 
 	ClosePages();
 
@@ -555,7 +574,7 @@ bool CFrame::RendererIsFullscreen()
 #if defined(__APPLE__)
 	if (m_RenderFrame != nullptr)
 	{
-		NSView *view = (NSView *) m_RenderFrame->GetHandle();
+		NSView *view = (NSView *)m_RenderFrame->GetHandle();
 		NSWindow *window = [view window];
 
 		fullscreen = (([window styleMask] & NSFullScreenWindowMask) == NSFullScreenWindowMask);
@@ -565,14 +584,14 @@ bool CFrame::RendererIsFullscreen()
 	return fullscreen;
 }
 
-void CFrame::OnQuit(wxCommandEvent& WXUNUSED (event))
+void CFrame::OnQuit(wxCommandEvent &WXUNUSED(event))
 {
 	Close(true);
 }
 
 // --------
 // Events
-void CFrame::OnActive(wxActivateEvent& event)
+void CFrame::OnActive(wxActivateEvent &event)
 {
 	if (Core::GetState() == Core::CORE_RUN || Core::GetState() == Core::CORE_PAUSE)
 	{
@@ -581,8 +600,7 @@ void CFrame::OnActive(wxActivateEvent& event)
 			if (SConfig::GetInstance().bRenderToMain)
 				m_RenderParent->SetFocus();
 
-			if (SConfig::GetInstance().bHideCursor &&
-					Core::GetState() == Core::CORE_RUN)
+			if (SConfig::GetInstance().bHideCursor && Core::GetState() == Core::CORE_RUN)
 				m_RenderParent->SetCursor(wxCURSOR_BLANK);
 		}
 		else
@@ -594,7 +612,7 @@ void CFrame::OnActive(wxActivateEvent& event)
 	event.Skip();
 }
 
-void CFrame::OnClose(wxCloseEvent& event)
+void CFrame::OnClose(wxCloseEvent &event)
 {
 	// Before closing the window we need to shut down the emulation core.
 	// We'll try to close this window again once that is done.
@@ -631,7 +649,6 @@ void CFrame::OnClose(wxCloseEvent& event)
 		m_LogWindow = nullptr;
 	}
 
-
 	// Uninit
 	m_Mgr->UnInit();
 }
@@ -639,11 +656,9 @@ void CFrame::OnClose(wxCloseEvent& event)
 // Post events
 
 // Warning: This may cause an endless loop if the event is propagated back to its parent
-void CFrame::PostEvent(wxCommandEvent& event)
+void CFrame::PostEvent(wxCommandEvent &event)
 {
-	if (g_pCodeWindow &&
-		event.GetId() >= IDM_INTERPRETER &&
-		event.GetId() <= IDM_ADDRBOX)
+	if (g_pCodeWindow && event.GetId() >= IDM_INTERPRETER && event.GetId() <= IDM_ADDRBOX)
 	{
 		event.StopPropagation();
 		g_pCodeWindow->GetEventHandler()->AddPendingEvent(event);
@@ -654,37 +669,32 @@ void CFrame::PostEvent(wxCommandEvent& event)
 	}
 }
 
-void CFrame::OnMove(wxMoveEvent& event)
+void CFrame::OnMove(wxMoveEvent &event)
 {
 	event.Skip();
 
-	if (!IsMaximized() &&
-		!(SConfig::GetInstance().bRenderToMain && RendererIsFullscreen()))
+	if (!IsMaximized() && !(SConfig::GetInstance().bRenderToMain && RendererIsFullscreen()))
 	{
 		SConfig::GetInstance().iPosX = GetPosition().x;
 		SConfig::GetInstance().iPosY = GetPosition().y;
 	}
 }
 
-void CFrame::OnResize(wxSizeEvent& event)
+void CFrame::OnResize(wxSizeEvent &event)
 {
 	event.Skip();
 
-	if (!IsMaximized() &&
-		!(SConfig::GetInstance().bRenderToMain && RendererIsFullscreen()) &&
-		!(Core::GetState() != Core::CORE_UNINITIALIZED &&
-			SConfig::GetInstance().bRenderToMain &&
-			SConfig::GetInstance().bRenderWindowAutoSize))
+	if (!IsMaximized() && !(SConfig::GetInstance().bRenderToMain && RendererIsFullscreen()) &&
+	    !(Core::GetState() != Core::CORE_UNINITIALIZED && SConfig::GetInstance().bRenderToMain &&
+	      SConfig::GetInstance().bRenderWindowAutoSize))
 	{
 		SConfig::GetInstance().iWidth = GetSize().GetWidth();
 		SConfig::GetInstance().iHeight = GetSize().GetHeight();
 	}
 
 	// Make sure the logger pane is a sane size
-	if (!g_pCodeWindow && m_LogWindow && m_Mgr->GetPane("Pane 1").IsShown() &&
-			!m_Mgr->GetPane("Pane 1").IsFloating() &&
-			(m_LogWindow->x > GetClientRect().GetWidth() ||
-			 m_LogWindow->y > GetClientRect().GetHeight()))
+	if (!g_pCodeWindow && m_LogWindow && m_Mgr->GetPane("Pane 1").IsShown() && !m_Mgr->GetPane("Pane 1").IsFloating() &&
+	    (m_LogWindow->x > GetClientRect().GetWidth() || m_LogWindow->y > GetClientRect().GetHeight()))
 		ShowResizePane();
 }
 
@@ -717,8 +727,7 @@ WXLRESULT CFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 
 void CFrame::UpdateTitle(const std::string &str)
 {
-	if (SConfig::GetInstance().bRenderToMain &&
-	    SConfig::GetInstance().m_InterfaceStatusbar)
+	if (SConfig::GetInstance().bRenderToMain && SConfig::GetInstance().m_InterfaceStatusbar)
 	{
 		GetStatusBar()->SetStatusText(str, 0);
 		m_RenderFrame->SetTitle(scm_rev_str);
@@ -730,7 +739,7 @@ void CFrame::UpdateTitle(const std::string &str)
 	}
 }
 
-void CFrame::OnHostMessage(wxCommandEvent& event)
+void CFrame::OnHostMessage(wxCommandEvent &event)
 {
 	switch (event.GetId())
 	{
@@ -748,27 +757,27 @@ void CFrame::OnHostMessage(wxCommandEvent& event)
 		break;
 
 	case IDM_WINDOW_SIZE_REQUEST:
-		{
-			std::pair<int, int> *win_size = (std::pair<int, int> *)(event.GetClientData());
-			OnRenderWindowSizeRequest(win_size->first, win_size->second);
-			delete win_size;
-		}
-		break;
+	{
+		std::pair<int, int> *win_size = (std::pair<int, int> *)(event.GetClientData());
+		OnRenderWindowSizeRequest(win_size->first, win_size->second);
+		delete win_size;
+	}
+	break;
 
 	case IDM_FULLSCREEN_REQUEST:
-		{
-			bool enable_fullscreen = event.GetInt() == 0 ? false : true;
-			ToggleDisplayMode(enable_fullscreen);
-			if (m_RenderFrame != nullptr)
-				m_RenderFrame->ShowFullScreen(enable_fullscreen);
+	{
+		bool enable_fullscreen = event.GetInt() == 0 ? false : true;
+		ToggleDisplayMode(enable_fullscreen);
+		if (m_RenderFrame != nullptr)
+			m_RenderFrame->ShowFullScreen(enable_fullscreen);
 
-			// If the stop dialog initiated this fullscreen switch then we need
-			// to pause the emulator after we've completed the switch.
-			// TODO: Allow the renderer to switch fullscreen modes while paused.
-			if (m_confirmStop)
-				Core::SetState(Core::CORE_PAUSE);
-		}
-		break;
+		// If the stop dialog initiated this fullscreen switch then we need
+		// to pause the emulator after we've completed the switch.
+		// TODO: Allow the renderer to switch fullscreen modes while paused.
+		if (m_confirmStop)
+			Core::SetState(Core::CORE_PAUSE);
+	}
+	break;
 
 	case WM_USER_CREATE:
 		if (SConfig::GetInstance().bHideCursor)
@@ -777,14 +786,13 @@ void CFrame::OnHostMessage(wxCommandEvent& event)
 
 #ifdef __WXGTK__
 	case IDM_PANIC:
-		{
-			wxString caption = event.GetString().BeforeFirst(':');
-			wxString text = event.GetString().AfterFirst(':');
-			bPanicResult = (wxYES == wxMessageBox(text,
-						caption, event.GetInt() ? wxYES_NO : wxOK, wxWindow::FindFocus()));
-			panic_event.Set();
-		}
-		break;
+	{
+		wxString caption = event.GetString().BeforeFirst(':');
+		wxString text = event.GetString().AfterFirst(':');
+		bPanicResult = (wxYES == wxMessageBox(text, caption, event.GetInt() ? wxYES_NO : wxOK, wxWindow::FindFocus()));
+		panic_event.Set();
+	}
+	break;
 #endif
 
 	case WM_USER_STOP:
@@ -815,9 +823,8 @@ void CFrame::OnHostMessage(wxCommandEvent& event)
 
 void CFrame::OnRenderWindowSizeRequest(int width, int height)
 {
-	if (!Core::IsRunning() ||
-			!SConfig::GetInstance().bRenderWindowAutoSize ||
-			RendererIsFullscreen() || m_RenderFrame->IsMaximized())
+	if (!Core::IsRunning() || !SConfig::GetInstance().bRenderWindowAutoSize || RendererIsFullscreen() ||
+	    m_RenderFrame->IsMaximized())
 		return;
 
 	int old_width, old_height, log_width = 0, log_height = 0;
@@ -825,20 +832,19 @@ void CFrame::OnRenderWindowSizeRequest(int width, int height)
 
 	// Add space for the log/console/debugger window
 	if (SConfig::GetInstance().bRenderToMain &&
-			(SConfig::GetInstance().m_InterfaceLogWindow ||
-			 SConfig::GetInstance().m_InterfaceLogConfigWindow) &&
-			!m_Mgr->GetPane("Pane 1").IsFloating())
+	    (SConfig::GetInstance().m_InterfaceLogWindow || SConfig::GetInstance().m_InterfaceLogConfigWindow) &&
+	    !m_Mgr->GetPane("Pane 1").IsFloating())
 	{
 		switch (m_Mgr->GetPane("Pane 1").dock_direction)
 		{
-			case wxAUI_DOCK_LEFT:
-			case wxAUI_DOCK_RIGHT:
-				log_width = m_Mgr->GetPane("Pane 1").rect.GetWidth();
-				break;
-			case wxAUI_DOCK_TOP:
-			case wxAUI_DOCK_BOTTOM:
-				log_height = m_Mgr->GetPane("Pane 1").rect.GetHeight();
-				break;
+		case wxAUI_DOCK_LEFT:
+		case wxAUI_DOCK_RIGHT:
+			log_width = m_Mgr->GetPane("Pane 1").rect.GetWidth();
+			break;
+		case wxAUI_DOCK_TOP:
+		case wxAUI_DOCK_BOTTOM:
+			log_height = m_Mgr->GetPane("Pane 1").rect.GetHeight();
+			break;
 		}
 	}
 
@@ -862,8 +868,7 @@ bool CFrame::RendererHasFocus()
 	if (window == nullptr)
 		return false;
 	// Why these different cases?
-	if (m_RenderParent == window ||
-	    m_RenderParent == window->GetParent() ||
+	if (m_RenderParent == window || m_RenderParent == window->GetParent() ||
 	    m_RenderParent->GetParent() == window->GetParent())
 	{
 		return true;
@@ -885,7 +890,7 @@ bool CFrame::UIHasFocus()
 	return (focusWindow != nullptr);
 }
 
-void CFrame::OnGameListCtrlItemActivated(wxListEvent& WXUNUSED(event))
+void CFrame::OnGameListCtrlItemActivated(wxListEvent &WXUNUSED(event))
 {
 	// Show all platforms and regions if...
 	// 1. All platforms are set to hide
@@ -896,24 +901,14 @@ void CFrame::OnGameListCtrlItemActivated(wxListEvent& WXUNUSED(event))
 	// 3. Call BrowseForDirectory if the gamelist is empty
 	if (!m_GameListCtrl->GetISO(0) && CGameListCtrl::IsHidingItems())
 	{
-		SConfig::GetInstance().m_ListGC =
-		SConfig::GetInstance().m_ListWii =
-		SConfig::GetInstance().m_ListWad =
-		SConfig::GetInstance().m_ListElfDol =
-		SConfig::GetInstance().m_ListJap =
-		SConfig::GetInstance().m_ListUsa =
-		SConfig::GetInstance().m_ListPal =
-		SConfig::GetInstance().m_ListAustralia =
-		SConfig::GetInstance().m_ListFrance =
-		SConfig::GetInstance().m_ListGermany =
-		SConfig::GetInstance().m_ListItaly =
-		SConfig::GetInstance().m_ListKorea =
-		SConfig::GetInstance().m_ListNetherlands =
-		SConfig::GetInstance().m_ListRussia =
-		SConfig::GetInstance().m_ListSpain =
-		SConfig::GetInstance().m_ListTaiwan =
-		SConfig::GetInstance().m_ListWorld =
-		SConfig::GetInstance().m_ListUnknown = true;
+		SConfig::GetInstance().m_ListGC = SConfig::GetInstance().m_ListWii = SConfig::GetInstance().m_ListWad =
+		    SConfig::GetInstance().m_ListElfDol = SConfig::GetInstance().m_ListJap = SConfig::GetInstance().m_ListUsa =
+		        SConfig::GetInstance().m_ListPal = SConfig::GetInstance().m_ListAustralia =
+		            SConfig::GetInstance().m_ListFrance = SConfig::GetInstance().m_ListGermany =
+		                SConfig::GetInstance().m_ListItaly = SConfig::GetInstance().m_ListKorea =
+		                    SConfig::GetInstance().m_ListNetherlands = SConfig::GetInstance().m_ListRussia =
+		                        SConfig::GetInstance().m_ListSpain = SConfig::GetInstance().m_ListTaiwan =
+		                            SConfig::GetInstance().m_ListWorld = SConfig::GetInstance().m_ListUnknown = true;
 
 		GetMenuBar()->FindItem(IDM_LIST_GC)->Check(true);
 		GetMenuBar()->FindItem(IDM_LIST_WII)->Check(true);
@@ -955,89 +950,170 @@ int GetCmdForHotkey(unsigned int key)
 {
 	switch (key)
 	{
-	case HK_OPEN: return wxID_OPEN;
-	case HK_CHANGE_DISC: return IDM_CHANGE_DISC;
-	case HK_REFRESH_LIST: return wxID_REFRESH;
-	case HK_PLAY_PAUSE: return IDM_PLAY;
-	case HK_STOP: return IDM_STOP;
-	case HK_RESET: return IDM_RESET;
-	case HK_FRAME_ADVANCE: return IDM_FRAMESTEP;
-	case HK_START_RECORDING: return IDM_RECORD;
-	case HK_PLAY_RECORDING: return IDM_PLAY_RECORD;
-	case HK_EXPORT_RECORDING: return IDM_RECORD_EXPORT;
-	case HK_READ_ONLY_MODE: return IDM_RECORD_READ_ONLY;
-	case HK_FULLSCREEN: return IDM_TOGGLE_FULLSCREEN;
-	case HK_SCREENSHOT: return IDM_SCREENSHOT;
-	case HK_EXIT: return wxID_EXIT;
+	case HK_OPEN:
+		return wxID_OPEN;
+	case HK_CHANGE_DISC:
+		return IDM_CHANGE_DISC;
+	case HK_REFRESH_LIST:
+		return wxID_REFRESH;
+	case HK_PLAY_PAUSE:
+		return IDM_PLAY;
+	case HK_STOP:
+		return IDM_STOP;
+	case HK_RESET:
+		return IDM_RESET;
+	case HK_FRAME_ADVANCE:
+		return IDM_FRAMESTEP;
+	case HK_START_RECORDING:
+		return IDM_RECORD;
+	case HK_PLAY_RECORDING:
+		return IDM_PLAY_RECORD;
+	case HK_EXPORT_RECORDING:
+		return IDM_RECORD_EXPORT;
+	case HK_READ_ONLY_MODE:
+		return IDM_RECORD_READ_ONLY;
+	case HK_FULLSCREEN:
+		return IDM_TOGGLE_FULLSCREEN;
+	case HK_SCREENSHOT:
+		return IDM_SCREENSHOT;
+	case HK_EXIT:
+		return wxID_EXIT;
 
-	case HK_WIIMOTE1_CONNECT: return IDM_CONNECT_WIIMOTE1;
-	case HK_WIIMOTE2_CONNECT: return IDM_CONNECT_WIIMOTE2;
-	case HK_WIIMOTE3_CONNECT: return IDM_CONNECT_WIIMOTE3;
-	case HK_WIIMOTE4_CONNECT: return IDM_CONNECT_WIIMOTE4;
-	case HK_BALANCEBOARD_CONNECT: return IDM_CONNECT_BALANCEBOARD;
+	case HK_WIIMOTE1_CONNECT:
+		return IDM_CONNECT_WIIMOTE1;
+	case HK_WIIMOTE2_CONNECT:
+		return IDM_CONNECT_WIIMOTE2;
+	case HK_WIIMOTE3_CONNECT:
+		return IDM_CONNECT_WIIMOTE3;
+	case HK_WIIMOTE4_CONNECT:
+		return IDM_CONNECT_WIIMOTE4;
+	case HK_BALANCEBOARD_CONNECT:
+		return IDM_CONNECT_BALANCEBOARD;
 
-	case HK_LOAD_STATE_SLOT_1: return IDM_LOAD_SLOT_1;
-	case HK_LOAD_STATE_SLOT_2: return IDM_LOAD_SLOT_2;
-	case HK_LOAD_STATE_SLOT_3: return IDM_LOAD_SLOT_3;
-	case HK_LOAD_STATE_SLOT_4: return IDM_LOAD_SLOT_4;
-	case HK_LOAD_STATE_SLOT_5: return IDM_LOAD_SLOT_5;
-	case HK_LOAD_STATE_SLOT_6: return IDM_LOAD_SLOT_6;
-	case HK_LOAD_STATE_SLOT_7: return IDM_LOAD_SLOT_7;
-	case HK_LOAD_STATE_SLOT_8: return IDM_LOAD_SLOT_8;
-	case HK_LOAD_STATE_SLOT_9: return IDM_LOAD_SLOT_9;
-	case HK_LOAD_STATE_SLOT_10: return IDM_LOAD_SLOT_10;
+	case HK_LOAD_STATE_SLOT_1:
+		return IDM_LOAD_SLOT_1;
+	case HK_LOAD_STATE_SLOT_2:
+		return IDM_LOAD_SLOT_2;
+	case HK_LOAD_STATE_SLOT_3:
+		return IDM_LOAD_SLOT_3;
+	case HK_LOAD_STATE_SLOT_4:
+		return IDM_LOAD_SLOT_4;
+	case HK_LOAD_STATE_SLOT_5:
+		return IDM_LOAD_SLOT_5;
+	case HK_LOAD_STATE_SLOT_6:
+		return IDM_LOAD_SLOT_6;
+	case HK_LOAD_STATE_SLOT_7:
+		return IDM_LOAD_SLOT_7;
+	case HK_LOAD_STATE_SLOT_8:
+		return IDM_LOAD_SLOT_8;
+	case HK_LOAD_STATE_SLOT_9:
+		return IDM_LOAD_SLOT_9;
+	case HK_LOAD_STATE_SLOT_10:
+		return IDM_LOAD_SLOT_10;
 
-	case HK_SAVE_STATE_SLOT_1: return IDM_SAVE_SLOT_1;
-	case HK_SAVE_STATE_SLOT_2: return IDM_SAVE_SLOT_2;
-	case HK_SAVE_STATE_SLOT_3: return IDM_SAVE_SLOT_3;
-	case HK_SAVE_STATE_SLOT_4: return IDM_SAVE_SLOT_4;
-	case HK_SAVE_STATE_SLOT_5: return IDM_SAVE_SLOT_5;
-	case HK_SAVE_STATE_SLOT_6: return IDM_SAVE_SLOT_6;
-	case HK_SAVE_STATE_SLOT_7: return IDM_SAVE_SLOT_7;
-	case HK_SAVE_STATE_SLOT_8: return IDM_SAVE_SLOT_8;
-	case HK_SAVE_STATE_SLOT_9: return IDM_SAVE_SLOT_9;
-	case HK_SAVE_STATE_SLOT_10: return IDM_SAVE_SLOT_10;
+	case HK_SAVE_STATE_SLOT_1:
+		return IDM_SAVE_SLOT_1;
+	case HK_SAVE_STATE_SLOT_2:
+		return IDM_SAVE_SLOT_2;
+	case HK_SAVE_STATE_SLOT_3:
+		return IDM_SAVE_SLOT_3;
+	case HK_SAVE_STATE_SLOT_4:
+		return IDM_SAVE_SLOT_4;
+	case HK_SAVE_STATE_SLOT_5:
+		return IDM_SAVE_SLOT_5;
+	case HK_SAVE_STATE_SLOT_6:
+		return IDM_SAVE_SLOT_6;
+	case HK_SAVE_STATE_SLOT_7:
+		return IDM_SAVE_SLOT_7;
+	case HK_SAVE_STATE_SLOT_8:
+		return IDM_SAVE_SLOT_8;
+	case HK_SAVE_STATE_SLOT_9:
+		return IDM_SAVE_SLOT_9;
+	case HK_SAVE_STATE_SLOT_10:
+		return IDM_SAVE_SLOT_10;
 
-	case HK_LOAD_LAST_STATE_1: return IDM_LOAD_LAST_1;
-	case HK_LOAD_LAST_STATE_2: return IDM_LOAD_LAST_2;
-	case HK_LOAD_LAST_STATE_3: return IDM_LOAD_LAST_3;
-	case HK_LOAD_LAST_STATE_4: return IDM_LOAD_LAST_4;
-	case HK_LOAD_LAST_STATE_5: return IDM_LOAD_LAST_5;
-	case HK_LOAD_LAST_STATE_6: return IDM_LOAD_LAST_6;
-	case HK_LOAD_LAST_STATE_7: return IDM_LOAD_LAST_7;
-	case HK_LOAD_LAST_STATE_8: return IDM_LOAD_LAST_8;
-	case HK_LOAD_LAST_STATE_9: return IDM_LOAD_LAST_9;
-	case HK_LOAD_LAST_STATE_10: return IDM_LOAD_LAST_10;
+	case HK_LOAD_LAST_STATE_1:
+		return IDM_LOAD_LAST_1;
+	case HK_LOAD_LAST_STATE_2:
+		return IDM_LOAD_LAST_2;
+	case HK_LOAD_LAST_STATE_3:
+		return IDM_LOAD_LAST_3;
+	case HK_LOAD_LAST_STATE_4:
+		return IDM_LOAD_LAST_4;
+	case HK_LOAD_LAST_STATE_5:
+		return IDM_LOAD_LAST_5;
+	case HK_LOAD_LAST_STATE_6:
+		return IDM_LOAD_LAST_6;
+	case HK_LOAD_LAST_STATE_7:
+		return IDM_LOAD_LAST_7;
+	case HK_LOAD_LAST_STATE_8:
+		return IDM_LOAD_LAST_8;
+	case HK_LOAD_LAST_STATE_9:
+		return IDM_LOAD_LAST_9;
+	case HK_LOAD_LAST_STATE_10:
+		return IDM_LOAD_LAST_10;
 
-	case HK_SAVE_FIRST_STATE: return IDM_SAVE_FIRST_STATE;
-	case HK_UNDO_LOAD_STATE: return IDM_UNDO_LOAD_STATE;
-	case HK_UNDO_SAVE_STATE: return IDM_UNDO_SAVE_STATE;
-	case HK_LOAD_STATE_FILE: return IDM_LOAD_STATE_FILE;
-	case HK_SAVE_STATE_FILE: return IDM_SAVE_STATE_FILE;
+	case HK_SAVE_FIRST_STATE:
+		return IDM_SAVE_FIRST_STATE;
+	case HK_UNDO_LOAD_STATE:
+		return IDM_UNDO_LOAD_STATE;
+	case HK_UNDO_SAVE_STATE:
+		return IDM_UNDO_SAVE_STATE;
+	case HK_LOAD_STATE_FILE:
+		return IDM_LOAD_STATE_FILE;
+	case HK_SAVE_STATE_FILE:
+		return IDM_SAVE_STATE_FILE;
 
-	case HK_SELECT_STATE_SLOT_1: return IDM_SELECT_SLOT_1;
-	case HK_SELECT_STATE_SLOT_2: return IDM_SELECT_SLOT_2;
-	case HK_SELECT_STATE_SLOT_3: return IDM_SELECT_SLOT_3;
-	case HK_SELECT_STATE_SLOT_4: return IDM_SELECT_SLOT_4;
-	case HK_SELECT_STATE_SLOT_5: return IDM_SELECT_SLOT_5;
-	case HK_SELECT_STATE_SLOT_6: return IDM_SELECT_SLOT_6;
-	case HK_SELECT_STATE_SLOT_7: return IDM_SELECT_SLOT_7;
-	case HK_SELECT_STATE_SLOT_8: return IDM_SELECT_SLOT_8;
-	case HK_SELECT_STATE_SLOT_9: return IDM_SELECT_SLOT_9;
-	case HK_SELECT_STATE_SLOT_10: return IDM_SELECT_SLOT_10;
-	case HK_SAVE_STATE_SLOT_SELECTED: return IDM_SAVE_SELECTED_SLOT;
-	case HK_LOAD_STATE_SLOT_SELECTED: return IDM_LOAD_SELECTED_SLOT;
+	case HK_SELECT_STATE_SLOT_1:
+		return IDM_SELECT_SLOT_1;
+	case HK_SELECT_STATE_SLOT_2:
+		return IDM_SELECT_SLOT_2;
+	case HK_SELECT_STATE_SLOT_3:
+		return IDM_SELECT_SLOT_3;
+	case HK_SELECT_STATE_SLOT_4:
+		return IDM_SELECT_SLOT_4;
+	case HK_SELECT_STATE_SLOT_5:
+		return IDM_SELECT_SLOT_5;
+	case HK_SELECT_STATE_SLOT_6:
+		return IDM_SELECT_SLOT_6;
+	case HK_SELECT_STATE_SLOT_7:
+		return IDM_SELECT_SLOT_7;
+	case HK_SELECT_STATE_SLOT_8:
+		return IDM_SELECT_SLOT_8;
+	case HK_SELECT_STATE_SLOT_9:
+		return IDM_SELECT_SLOT_9;
+	case HK_SELECT_STATE_SLOT_10:
+		return IDM_SELECT_SLOT_10;
+	case HK_SAVE_STATE_SLOT_SELECTED:
+		return IDM_SAVE_SELECTED_SLOT;
+	case HK_LOAD_STATE_SLOT_SELECTED:
+		return IDM_LOAD_SELECTED_SLOT;
 
-	case HK_FREELOOK_DECREASE_SPEED: return IDM_FREELOOK_DECREASE_SPEED;
-	case HK_FREELOOK_INCREASE_SPEED: return IDM_FREELOOK_INCREASE_SPEED;
-	case HK_FREELOOK_RESET_SPEED: return IDM_FREELOOK_RESET_SPEED;
-	case HK_FREELOOK_LEFT: return IDM_FREELOOK_LEFT;
-	case HK_FREELOOK_RIGHT: return IDM_FREELOOK_RIGHT;
-	case HK_FREELOOK_UP: return IDM_FREELOOK_UP;
-	case HK_FREELOOK_DOWN: return IDM_FREELOOK_DOWN;
-	case HK_FREELOOK_ZOOM_IN: return IDM_FREELOOK_ZOOM_IN;
-	case HK_FREELOOK_ZOOM_OUT: return IDM_FREELOOK_ZOOM_OUT;
-	case HK_FREELOOK_RESET: return IDM_FREELOOK_RESET;
+	case HK_FREELOOK_DECREASE_SPEED:
+		return IDM_FREELOOK_DECREASE_SPEED;
+	case HK_FREELOOK_INCREASE_SPEED:
+		return IDM_FREELOOK_INCREASE_SPEED;
+	case HK_FREELOOK_RESET_SPEED:
+		return IDM_FREELOOK_RESET_SPEED;
+	case HK_FREELOOK_LEFT:
+		return IDM_FREELOOK_LEFT;
+	case HK_FREELOOK_RIGHT:
+		return IDM_FREELOOK_RIGHT;
+	case HK_FREELOOK_UP:
+		return IDM_FREELOOK_UP;
+	case HK_FREELOOK_DOWN:
+		return IDM_FREELOOK_DOWN;
+	case HK_FREELOOK_ZOOM_IN:
+		return IDM_FREELOOK_ZOOM_IN;
+	case HK_FREELOOK_ZOOM_OUT:
+		return IDM_FREELOOK_ZOOM_OUT;
+	case HK_FREELOOK_RESET:
+		return IDM_FREELOOK_RESET;
+
+	case HK_RUN_SCRIPT:
+		return IDM_RUN_SCRIPT;
+	case HK_CANCEL_SCRIPT:
+		return IDM_RUN_SCRIPT;
 	}
 
 	return -1;
@@ -1064,19 +1140,19 @@ void OnStoppedCallback()
 	}
 }
 
-void TAStudioManip(GCPadStatus* PadStatus) // TAStudio - Added by THC98
+void TAStudioManip(GCPadStatus *PadStatus) // TAStudio - Added by THC98
 {
 	if (main_frame)
 		main_frame->g_TAStudioFrame->SetInput(PadStatus);
 }
 
-void TAStudioReceiver(GCPadStatus* PadStatus) // TAStudio - Added by THC98
+void TAStudioReceiver(GCPadStatus *PadStatus) // TAStudio - Added by THC98
 {
 	if (main_frame)
 		main_frame->g_TAStudioFrame->GetInput(PadStatus);
 }
 
-void CFrame::OnKeyDown(wxKeyEvent& event)
+void CFrame::OnKeyDown(wxKeyEvent &event)
 {
 	// On OS X, we claim all keyboard events while
 	// emulation is running to avoid wxWidgets sounding
@@ -1090,7 +1166,7 @@ void CFrame::OnKeyDown(wxKeyEvent& event)
 #endif
 }
 
-void CFrame::OnMouse(wxMouseEvent& event)
+void CFrame::OnMouse(wxMouseEvent &event)
 {
 	// next handlers are all for FreeLook, so we don't need to check them if disabled
 	if (!g_Config.bFreeLook)
@@ -1130,7 +1206,7 @@ void CFrame::OnMouse(wxMouseEvent& event)
 		if (mouseLookEnabled)
 		{
 			VertexShaderManager::RotateView((event.GetX() - lastMouse[0]) / 200.0f,
-					(event.GetY() - lastMouse[1]) / 200.0f);
+			                                (event.GetY() - lastMouse[1]) / 200.0f);
 			lastMouse[0] = event.GetX();
 			lastMouse[1] = event.GetY();
 		}
@@ -1138,7 +1214,7 @@ void CFrame::OnMouse(wxMouseEvent& event)
 		if (mouseMoveEnabled)
 		{
 			VertexShaderManager::TranslateView((event.GetX() - lastMouse[0]) / 50.0f,
-					(event.GetY() - lastMouse[1]) / 50.0f);
+			                                   (event.GetY() - lastMouse[1]) / 50.0f);
 			lastMouse[0] = event.GetX();
 			lastMouse[1] = event.GetY();
 		}
@@ -1147,7 +1223,7 @@ void CFrame::OnMouse(wxMouseEvent& event)
 	event.Skip();
 }
 
-void CFrame::OnFocusChange(wxFocusEvent& event)
+void CFrame::OnFocusChange(wxFocusEvent &event)
 {
 	if (SConfig::GetInstance().m_PauseOnFocusLost && Core::IsRunningAndStarted())
 	{
@@ -1196,7 +1272,7 @@ void CFrame::DoFullscreen(bool enable_fullscreen)
 
 	if (enable_fullscreen != RendererIsFullscreen())
 	{
-		[window toggleFullScreen : nil];
+		[window toggleFullScreen:nil];
 	}
 #else
 	if (enable_fullscreen)
@@ -1267,7 +1343,7 @@ const CGameListCtrl *CFrame::GetGameListCtrl() const
 	return m_GameListCtrl;
 }
 
-void CFrame::PollHotkeys(wxTimerEvent& event)
+void CFrame::PollHotkeys(wxTimerEvent &event)
 {
 	if (!HotkeyManagerEmu::IsEnabled())
 		return;
@@ -1286,39 +1362,39 @@ void CFrame::ParseHotkeys()
 {
 	for (int i = 0; i < NUM_HOTKEYS; i++)
 	{
-		switch  (i)
+		switch (i)
 		{
-			case HK_OPEN:
-			case HK_CHANGE_DISC:
-			case HK_REFRESH_LIST:
-			case HK_RESET:
-			case HK_START_RECORDING:
-			case HK_PLAY_RECORDING:
-			case HK_EXPORT_RECORDING:
-			case HK_READ_ONLY_MODE:
+		case HK_OPEN:
+		case HK_CHANGE_DISC:
+		case HK_REFRESH_LIST:
+		case HK_RESET:
+		case HK_START_RECORDING:
+		case HK_PLAY_RECORDING:
+		case HK_EXPORT_RECORDING:
+		case HK_READ_ONLY_MODE:
 
-			case HK_LOAD_STATE_FILE:
-			case HK_SAVE_STATE_FILE:
-			case HK_LOAD_STATE_SLOT_SELECTED:
+		case HK_LOAD_STATE_FILE:
+		case HK_SAVE_STATE_FILE:
+		case HK_LOAD_STATE_SLOT_SELECTED:
 
-				if (IsHotkey(i))
+			if (IsHotkey(i))
+			{
+				int cmd = GetCmdForHotkey(i);
+				if (cmd >= 0)
 				{
-					int cmd = GetCmdForHotkey(i);
-					if (cmd >= 0)
+					wxCommandEvent evt(wxEVT_MENU, cmd);
+					wxMenuItem *item = GetMenuBar()->FindItem(cmd);
+					if (item && item->IsCheckable())
 					{
-						wxCommandEvent evt(wxEVT_MENU, cmd);
-						wxMenuItem* item = GetMenuBar()->FindItem(cmd);
-						if (item && item->IsCheckable())
-						{
-							item->wxMenuItemBase::Toggle();
-							evt.SetInt(item->IsChecked());
-						}
-						GetEventHandler()->AddPendingEvent(evt);
+						item->wxMenuItemBase::Toggle();
+						evt.SetInt(item->IsChecked());
 					}
+					GetEventHandler()->AddPendingEvent(evt);
 				}
-			default:
-				break;
-				// do nothing
+			}
+		default:
+			break;
+			// do nothing
 		}
 	}
 
@@ -1571,6 +1647,18 @@ void CFrame::ParseHotkeys()
 		State::UndoLoadState();
 	if (IsHotkey(HK_UNDO_SAVE_STATE))
 		State::UndoSaveState();
+
+	if (IsHotkey(HK_RUN_SCRIPT))
+	{
+		wxCommandEvent scriptEvent;
+		CFrame::OnScriptRun(scriptEvent);
+	}
+
+	if (IsHotkey(HK_CANCEL_SCRIPT))
+	{
+		wxCommandEvent scriptEvent;
+		CFrame::OnScriptTerminate(scriptEvent);
+	}
 }
 
 void CFrame::HandleFrameSkipHotkeys()
