@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <string>
 #include "InputCommon/ControllerEmu.h"
 #include "InputCommon/InputConfig.h"
+#include <string>
 
 enum Hotkey
 {
@@ -127,39 +127,42 @@ enum Hotkey
 	HK_SAVE_STATE_FILE,
 	HK_LOAD_STATE_FILE,
 
+	HK_RUN_SCRIPT,
+	HK_CANCEL_SCRIPT,
+
 	NUM_HOTKEYS,
 };
 
 struct HotkeyStatus
 {
 	u32 button[(NUM_HOTKEYS + 31) / 32];
-	s8  err;
+	s8 err;
 };
 
 class HotkeyManager : public ControllerEmu
 {
-public:
+  public:
 	HotkeyManager();
 	~HotkeyManager();
 
-	void GetInput(HotkeyStatus* const hk);
+	void GetInput(HotkeyStatus *const hk);
 	std::string GetName() const override;
-	void LoadDefaults(const ControllerInterface& ciface) override;
+	void LoadDefaults(const ControllerInterface &ciface) override;
 
-private:
-	Buttons* m_keys[(NUM_HOTKEYS + 31) / 32];
-	ControlGroup* m_options;
+  private:
+	Buttons *m_keys[(NUM_HOTKEYS + 31) / 32];
+	ControlGroup *m_options;
 };
 
 namespace HotkeyManagerEmu
 {
-	void Initialize(void* const hwnd);
-	void Shutdown();
-	void LoadConfig();
+void Initialize(void *const hwnd);
+void Shutdown();
+void LoadConfig();
 
-	InputConfig* GetConfig();
-	void GetStatus();
-	bool IsEnabled();
-	void Enable(bool enable_toggle);
-	bool IsPressed(int Id, bool held);
-}
+InputConfig *GetConfig();
+void GetStatus();
+bool IsEnabled();
+void Enable(bool enable_toggle);
+bool IsPressed(int Id, bool held);
+} // namespace HotkeyManagerEmu

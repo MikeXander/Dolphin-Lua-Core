@@ -2,61 +2,64 @@
 // Licensed under GPLv2
 // Refer to the license.txt file included.
 
+#include <array>
 #include <wx/bitmap.h>
-#include <wx/defs.h>
 #include <wx/button.h>
+#include <wx/defs.h>
 #include <wx/dialog.h>
+#include <wx/filepicker.h>
 #include <wx/gdicmn.h>
 #include <wx/image.h>
+#include <wx/msgdlg.h>
 #include <wx/mstream.h>
 #include <wx/sizer.h>
 #include <wx/statbmp.h>
 #include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/translation.h>
-#include <wx/windowid.h>
-#include <wx/msgdlg.h>
-#include <array>
-#include <wx/filepicker.h>
 #include <wx/utils.h>
+#include <wx/windowid.h>
 
 #include "Common/Common.h"
-#include "DolphinWX/LaunchLuaScript.h"
+#include "Common/CommonPaths.h"
+#include "Common/IniFile.h"
 #include "Core/Core.h"
 #include "Core/HW/Memmap.h"
-#include "Common/IniFile.h"
-#include "Common/CommonPaths.h"
+#include "DolphinWX/LaunchLuaScript.h"
 
-#include "Common/StringUtil.h"
-#include "Common/FileUtil.h"
-#include "DiscIO/Filesystem.h"
 #include "Common/FileSearch.h"
+#include "Common/FileUtil.h"
+#include "Common/StringUtil.h"
+#include "DiscIO/Filesystem.h"
 
+#include "Core/ConfigManager.h"
+#include "Core/LUA/Lua.h"
+#include "Core/Movie.h"
 #include "DiscIO/FileSystemGCWii.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
-#include "Core/ConfigManager.h"
-#include "Core/Movie.h"
-#include "Core/LUA/Lua.h"
 
 #include "DolphinWX/ISOFile.h"
 #include "DolphinWX/ISOProperties.h"
 #include "DolphinWX/WxUtils.h"
+#include "LaunchLuaScript.h"
 
-//Dragonbane
+// Dragonbane
 BEGIN_EVENT_TABLE(LuaWindow, wxDialog)
 
-EVT_CHOICE(1, LuaWindow::OnSelectionChanged) //Script Selection
-EVT_BUTTON(2, LuaWindow::OnButtonPressed) //Start
-EVT_BUTTON(3, LuaWindow::OnButtonPressed) //Cancel
+EVT_CHOICE(1, LuaWindow::OnSelectionChanged) // Script Selection
+EVT_BUTTON(2, LuaWindow::OnButtonPressed)    // Start
+EVT_BUTTON(3, LuaWindow::OnButtonPressed)    // Cancel
 
 END_EVENT_TABLE()
 
-LuaWindow::LuaWindow(wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style) : wxDialog(parent, id, title, pos, size, style)
+LuaWindow::LuaWindow(wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &pos, const wxSize &size,
+                     long style)
+    : wxDialog(parent, id, title, pos, size, style)
 {
 	SetSizeHints(wxDefaultSize, wxDefaultSize);
 
-	wxFlexGridSizer* fgSizer1;
+	wxFlexGridSizer *fgSizer1;
 	fgSizer1 = new wxFlexGridSizer(0, 2, 0, 0);
 	fgSizer1->SetFlexibleDirection(wxBOTH);
 	fgSizer1->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
@@ -66,7 +69,7 @@ LuaWindow::LuaWindow(wxWindow* parent, wxWindowID id, const wxString& title, con
 	m_staticText10->SetFont(wxFont(wxNORMAL_FONT->GetPointSize(), 70, 90, 92, false, wxEmptyString));
 	fgSizer1->Add(m_staticText10, 0, wxALIGN_CENTER | wxALL, 25);
 
-	//Script Choice
+	// Script Choice
 	wxArrayString m_choice_scriptChoices;
 	m_choice_script = new wxChoice(this, 1, wxDefaultPosition, wxSize(200, -1), m_choice_scriptChoices, 0);
 	fgSizer1->Add(m_choice_script, 0, wxALIGN_CENTER | wxALL, 10);
@@ -92,14 +95,55 @@ LuaWindow::LuaWindow(wxWindow* parent, wxWindowID id, const wxString& title, con
 	Bind(wxEVT_CLOSE_WINDOW, &LuaWindow::OnCloseWindow, this);
 }
 
-void LuaWindow::OnSelectionChanged(wxCommandEvent& event)
+void LuaWindow::OnSelectionChanged(wxCommandEvent &event)
 {
-	if (event.GetId() == 1) //Script Selection
+	if (event.GetId() == 1) // Script Selection
 	{
 	}
 }
 
-void LuaWindow::OnButtonPressed(wxCommandEvent& event)
+std::string LuaWindow::getLoadedScriptString()
+{
+	wxString selectedScriptName = m_choice_script->GetStringSelection();
+
+	if (selectedScriptName == wxEmptyString || selectedScriptName.Len() < 3)
+	{
+		wxMessageBox("No script selected!");
+		return "";
+	}
+
+	return WxStrToStr(selectedScriptName);
+}
+
+void LuaWindow::RunScript(std::string fileName)
+{
+	if (File::Exists(SYSDATA_DIR "/Scripts/" + fileName) == false)
+	{
+		wxMessageBox("Script file does not exist anymore!");
+		return;
+	}
+
+	if (Lua::IsScriptRunning(fileName))
+	{
+		wxMessageBox("Script is already running!");
+		return;
+	}
+
+	Lua::LoadScript(fileName);
+}
+
+void LuaWindow::TerminateScript(std::string fileName)
+{
+	if (Lua::IsScriptRunning(fileName) == false)
+	{
+		wxMessageBox("Script is not loaded!");
+		return;
+	}
+
+	Lua::TerminateScript(fileName);
+}
+
+void LuaWindow::OnButtonPressed(wxCommandEvent &event)
 {
 	if (!Core::IsRunningAndStarted())
 	{
@@ -107,52 +151,26 @@ void LuaWindow::OnButtonPressed(wxCommandEvent& event)
 		return;
 	}
 
-	wxString selectedScriptName = m_choice_script->GetStringSelection();
+	std::string fileName = getLoadedScriptString();
 
-	if (selectedScriptName == wxEmptyString || selectedScriptName.Len() < 3)
+	if (event.GetId() == 2) // Start
 	{
-		wxMessageBox("No script selected!");
-		return;
+		RunScript(fileName);
 	}
 
-	std::string FileName = WxStrToStr(selectedScriptName);
-
-	if (event.GetId() == 2) //Start
+	if (event.GetId() == 3) // Cancel
 	{
-		if (File::Exists(SYSDATA_DIR "/Scripts/" + FileName) == false)
-		{
-			wxMessageBox("Script file does not exist anymore!");
-			return;
-		}
-
-		if (Lua::IsScriptRunning(FileName))
-		{
-			wxMessageBox("Script is already running!");
-			return;
-		}
-
-		Lua::LoadScript(FileName);
-	}
-
-	if (event.GetId() == 3) //Cancel
-	{
-		if (Lua::IsScriptRunning(FileName) == false)
-		{
-			wxMessageBox("Script is not loaded!");
-			return;
-		}
-
-		Lua::TerminateScript(FileName);
+		TerminateScript(fileName);
 	}
 }
 
 void LuaWindow::Shown()
 {
-	//Refresh Script List
+	// Refresh Script List
 	m_choice_script->Clear();
 
-	//Find all Lua files
-	std::vector<std::string> rFilenames = DoFileSearch({".lua"}, {SYSDATA_DIR "/Scripts" });
+	// Find all Lua files
+	std::vector<std::string> rFilenames = DoFileSearch({".lua"}, {SYSDATA_DIR "/Scripts"});
 
 	if (rFilenames.size() > 0)
 	{
@@ -169,7 +187,7 @@ void LuaWindow::Shown()
 	}
 }
 
-void LuaWindow::OnCloseWindow(wxCloseEvent& event)
+void LuaWindow::OnCloseWindow(wxCloseEvent &event)
 {
 	if (event.CanVeto())
 	{
