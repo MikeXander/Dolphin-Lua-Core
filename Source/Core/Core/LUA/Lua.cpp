@@ -41,6 +41,7 @@
 #include "InputCommon/GCPadStatus.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/RenderBase.h"
 #include "Core/Host.h"
 
@@ -568,6 +569,53 @@ int PauseEmulation(lua_State* L)
 	int argc = lua_gettop(L);
 
 	Core::SetState(Core::CORE_PAUSE);
+
+	return 0;
+}
+
+int FreeLookTranslate(lua_State* L)
+{
+	int argc = lua_gettop(L);
+	if (argc < 2)
+		return 0;
+
+	float x = (float)lua_tonumber(L, 1);
+	float y = (float)lua_tonumber(L, 2);
+	float z = (argc >= 3) ? (float)lua_tonumber(L, 3) : 0.0f;
+
+	VertexShaderManager::TranslateView(x, y, z);
+
+	return 0;
+}
+
+int FreeLookRotate(lua_State* L)
+{
+	int argc = lua_gettop(L);
+	if (argc < 2)
+		return 0;
+
+	float x = (float)lua_tonumber(L, 1);
+	float y = (float)lua_tonumber(L, 2);
+
+	VertexShaderManager::RotateView(x, y);
+
+	return 0;
+}
+
+int FreeLookReset(lua_State* L)
+{
+	VertexShaderManager::ResetView();
+
+	return 0;
+}
+
+int SetFreeLookEnabled(lua_State* L)
+{
+	int argc = lua_gettop(L);
+	if (argc < 1)
+		return 0;
+
+	g_Config.bFreeLook = lua_toboolean(L, 1) != 0;
 
 	return 0;
 }
@@ -1664,6 +1712,10 @@ namespace Lua
 		
 		lua_register(luaState, "SetScreenText", SetScreenText);
 		lua_register(luaState, "PauseEmulation", PauseEmulation);
+		lua_register(luaState, "FreeLookTranslate", FreeLookTranslate);
+		lua_register(luaState, "FreeLookRotate", FreeLookRotate);
+		lua_register(luaState, "FreeLookReset", FreeLookReset);
+		lua_register(luaState, "SetFreeLookEnabled", SetFreeLookEnabled);
 		lua_register(luaState, "SetInfoDisplay", SetInfoDisplay); 
 		lua_register(luaState, "RenderText", RenderText); // Xander: directly control text rendering
 

@@ -42,6 +42,11 @@ MsgBox(message as String, delayMS as Number) //Dolphin will show the indicated m
 SetScreenText(message as String) //Displays Text on Screen
 RenderText(text, start_x, start_y, colour, size) // Displays custom text on screen. (0,0) is the top left. Colour is the hex code 0xRRGGBB. The regular size is 11.
 
+SetFreeLookEnabled(on as boolean)
+FreeLookTranslate(x, y, z) // x+ = left, y+ = zoom in, z+ = down (expects values around 200)
+FreeLookRotate(x, y) // x+ = turn right, y+ = tilt down (expects values around 0.001)
+FreeLookReset()
+
 CancelScript() //Cancels the script
 ```
 
