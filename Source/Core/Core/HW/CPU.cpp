@@ -15,6 +15,7 @@
 #include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "VideoCommon/Fifo.h"
+#include "VideoCommon/FreeLookReplay.h"
 
 namespace CPU
 {
@@ -46,6 +47,7 @@ static bool                    s_state_paused_and_locked         = false;
 static bool                    s_state_system_request_stepping   = false;
 static bool                    s_state_cpu_step_instruction      = false;
 static Common::Event*          s_state_cpu_step_instruction_sync = nullptr;
+static bool                    s_state_want_freelook_redraw      = false;
 
 void Init(int cpu_core)
 {
@@ -113,6 +115,7 @@ void Run()
 			s_state_cpu_cvar.wait(state_lock, []
 			{
 				return s_state_cpu_step_instruction ||
+				       s_state_want_freelook_redraw ||
 				       s_state != CPU_STEPPING;
 			});
 			if (s_state != CPU_STEPPING)
@@ -123,6 +126,15 @@ void Run()
 			}
 			if (s_state_paused_and_locked)
 				continue;
+
+			if (s_state_want_freelook_redraw)
+			{
+				s_state_want_freelook_redraw = false;
+				state_lock.unlock();
+				FreeLookReplay::Redraw();
+				state_lock.lock();
+				continue;
+			}
 
 			// Do step
 			s_state_cpu_thread_active = true;
@@ -210,6 +222,15 @@ void StepOpcode(Common::Event* event)
 
 	s_state_cpu_step_instruction = true;
 	s_state_cpu_step_instruction_sync = event;
+	s_state_cpu_cvar.notify_one();
+}
+
+void RequestFreeLookRedraw()
+{
+	std::lock_guard<std::mutex> state_lock(s_state_change_lock);
+	if (s_state != CPU_STEPPING)
+		return;
+	s_state_want_freelook_redraw = true;
 	s_state_cpu_cvar.notify_one();
 }
 

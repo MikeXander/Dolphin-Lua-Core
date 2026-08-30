@@ -39,6 +39,7 @@
 #include "VideoCommon/Debugger.h"
 #include "VideoCommon/FPSCounter.h"
 #include "VideoCommon/FramebufferManagerBase.h"
+#include "VideoCommon/FreeLookReplay.h"
 #include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/Statistics.h"
@@ -133,6 +134,7 @@ Renderer::~Renderer()
 void Renderer::RenderToXFB(u32 xfbAddr, const EFBRectangle &sourceRc, u32 fbStride, u32 fbHeight, float Gamma)
 {
 	CheckFifoRecording();
+	FreeLookReplay::EndFrame();
 
 	if (!fbStride || !fbHeight)
 		return;
@@ -142,6 +144,12 @@ void Renderer::RenderToXFB(u32 xfbAddr, const EFBRectangle &sourceRc, u32 fbStri
 	if (g_ActiveConfig.bUseXFB)
 	{
 		FramebufferManagerBase::CopyToXFB(xfbAddr, fbStride, fbHeight, sourceRc, Gamma);
+
+		// Normally VideoInterface's own timing decides when this copy actually gets
+		// presented (Video_BeginField -> Swap), but that doesn't run while paused. During
+		// a FreeLook replay, present it ourselves right away instead.
+		if (FreeLookReplay::IsReplaying())
+			Swap(xfbAddr, fbStride / 2, fbStride / 2, fbHeight, sourceRc, Gamma);
 	}
 	else
 	{
@@ -671,7 +679,14 @@ void Renderer::Swap(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const 
 	if (XFBWrited)
 		g_renderer->m_fps_counter.Update();
 
-	frameCount++;
+	// A FreeLook replay redraws the current frame with a new camera; it isn't a new frame,
+	// so don't let it advance frame/movie counters.
+	if (!FreeLookReplay::IsReplaying())
+	{
+		frameCount++;
+		Core::Callback_VideoCopiedToXFB(XFBWrited || (g_ActiveConfig.bUseXFB && g_ActiveConfig.bUseRealXFB));
+	}
+
 	GFX_DEBUGGER_PAUSE_AT(NEXT_FRAME, true);
 
 	// Begin new frame
@@ -679,7 +694,6 @@ void Renderer::Swap(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const 
 	// New frame
 	stats.ResetFrame();
 
-	Core::Callback_VideoCopiedToXFB(XFBWrited || (g_ActiveConfig.bUseXFB && g_ActiveConfig.bUseRealXFB));
 	XFBWrited = false;
 }
 

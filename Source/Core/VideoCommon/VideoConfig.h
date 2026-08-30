@@ -101,6 +101,7 @@ struct VideoConfig final
 	bool bDumpEFBTarget;
 	bool bUseFFV1;
 	bool bFreeLook;
+	bool bFreeLookInstantRender;
 	bool bBorderlessFullscreen;
 
 	// Hacks

@@ -39,6 +39,10 @@ void Reset();
 // StepOpcode (Steps one Opcode)
 void StepOpcode(Common::Event* event = nullptr);
 
+// Wakes the CPU Thread to run a single FreeLook redraw pass while CPU_STEPPING, without
+// single-stepping any PowerPC code. No-ops if the CPU isn't currently stepping.
+void RequestFreeLookRedraw();
+
 // Enable or Disable Stepping. [Will deadlock if called from a system thread]
 void EnableStepping(bool stepping);
 

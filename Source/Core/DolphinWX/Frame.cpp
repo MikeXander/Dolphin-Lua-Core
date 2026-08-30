@@ -54,6 +54,7 @@
 
 #include "InputCommon/GCPadStatus.h"
 
+#include "VideoCommon/FreeLookReplay.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VertexShaderManager.h"
@@ -1209,6 +1210,7 @@ void CFrame::OnMouse(wxMouseEvent &event)
 			                                (event.GetY() - lastMouse[1]) / 200.0f);
 			lastMouse[0] = event.GetX();
 			lastMouse[1] = event.GetY();
+			FreeLookReplay::RequestRedraw();
 		}
 
 		if (mouseMoveEnabled)
@@ -1217,6 +1219,7 @@ void CFrame::OnMouse(wxMouseEvent &event)
 			                                   (event.GetY() - lastMouse[1]) / 50.0f);
 			lastMouse[0] = event.GetX();
 			lastMouse[1] = event.GetY();
+			FreeLookReplay::RequestRedraw();
 		}
 	}
 
@@ -1621,6 +1624,11 @@ void CFrame::ParseHotkeys()
 		VertexShaderManager::TranslateView(0.0f, -debugSpeed);
 	if (IsHotkey(HK_FREELOOK_RESET, true))
 		VertexShaderManager::ResetView();
+	if (IsHotkey(HK_FREELOOK_DECREASE_SPEED, true) || IsHotkey(HK_FREELOOK_INCREASE_SPEED, true) ||
+	    IsHotkey(HK_FREELOOK_RESET_SPEED, true) || IsHotkey(HK_FREELOOK_UP, true) || IsHotkey(HK_FREELOOK_DOWN, true) ||
+	    IsHotkey(HK_FREELOOK_LEFT, true) || IsHotkey(HK_FREELOOK_RIGHT, true) || IsHotkey(HK_FREELOOK_ZOOM_IN, true) ||
+	    IsHotkey(HK_FREELOOK_ZOOM_OUT, true) || IsHotkey(HK_FREELOOK_RESET, true))
+		FreeLookReplay::RequestRedraw();
 
 	// Savestates
 	for (u32 i = 0; i < State::NUM_STATES; i++)

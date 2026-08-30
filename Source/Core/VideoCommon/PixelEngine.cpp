@@ -19,6 +19,7 @@
 #include "VideoCommon/BoundingBox.h"
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/Fifo.h"
+#include "VideoCommon/FreeLookReplay.h"
 #include "VideoCommon/PixelEngine.h"
 
 namespace PixelEngine
@@ -289,6 +290,12 @@ static void SetFinish_OnMainThread(u64 userdata, s64 cyclesLate)
 // THIS IS EXECUTED FROM VIDEO THREAD
 void SetToken(const u16 _token, const int _bSetTokenAcknowledge)
 {
+	// A FreeLook replay re-executes commands that already ran once; don't re-raise the
+	// interrupts/CoreTiming events that go with them, or they'll pile up while paused and
+	// fire in a burst (plus desync movie playback) once the game resumes.
+	if (FreeLookReplay::IsReplaying())
+		return;
+
 	if (_bSetTokenAcknowledge) // set token INT
 	{
 		s_signal_token_interrupt.store(1);
@@ -306,6 +313,9 @@ void SetToken(const u16 _token, const int _bSetTokenAcknowledge)
 // THIS IS EXECUTED FROM VIDEO THREAD (BPStructs.cpp) when a new frame has been drawn
 void SetFinish()
 {
+	if (FreeLookReplay::IsReplaying())
+		return;
+
 	CommandProcessor::SetInterruptFinishWaiting(true);
 
 	if (!SConfig::GetInstance().bCPUThread || Fifo::UseDeterministicGPUThread())

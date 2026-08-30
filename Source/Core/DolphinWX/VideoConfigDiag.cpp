@@ -559,6 +559,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_utility->Add(cache_hires_textures);
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Dump EFB Target"), wxGetTranslation(dump_efb_desc), vconfig.bDumpEFBTarget));
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Free Look"), wxGetTranslation(free_look_desc), vconfig.bFreeLook));
+	szr_utility->Add(CreateCheckBox(page_advanced, "Instantly Re-render Free Look", "Redraws the last frame as soon as Free Look changes, instead of waiting for the game to render a new one. Lets Free Look work while the game is paused.", vconfig.bFreeLookInstantRender));
 #if defined(HAVE_LIBAV) || defined (_WIN32)
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Frame Dumps use FFV1"), wxGetTranslation(use_ffv1_desc), vconfig.bUseFFV1));
 #endif

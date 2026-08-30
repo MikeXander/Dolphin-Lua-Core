@@ -10,6 +10,7 @@ set(SRCS	AsyncRequests.cpp
 			Fifo.cpp
 			FPSCounter.cpp
 			FramebufferManagerBase.cpp
+			FreeLookReplay.cpp
 			GeometryShaderGen.cpp
 			GeometryShaderManager.cpp
 			HiresTextures.cpp

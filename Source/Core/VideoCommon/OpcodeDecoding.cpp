@@ -22,10 +22,12 @@
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/DataReader.h"
 #include "VideoCommon/Fifo.h"
+#include "VideoCommon/FreeLookReplay.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VideoCommon.h"
+#include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
 bool g_bRecordFifoData = false;
@@ -300,11 +302,18 @@ u8* Run(DataReader src, u32* cycles, bool in_display_list)
 		}
 
 		// Display lists get added directly into the FIFO stream
-		if (!is_preprocess && g_bRecordFifoData && cmd_byte != GX_CMD_CALL_DL)
+		// Capture for FreeLookReplay as soon as FreeLook itself is on, not just when the
+		// instant-render toggle is: otherwise there's no captured frame to replay yet if
+		// the toggle only gets enabled after the game is already paused.
+		bool wantFreeLookReplay = g_ActiveConfig.bFreeLook || g_ActiveConfig.bFreeLookInstantRender;
+		if (!is_preprocess && cmd_byte != GX_CMD_CALL_DL && (g_bRecordFifoData || wantFreeLookReplay))
 		{
 			u8* opcodeEnd;
 			opcodeEnd = src.GetPointer();
-			FifoRecorder::GetInstance().WriteGPCommand(opcodeStart, u32(opcodeEnd - opcodeStart));
+			if (g_bRecordFifoData)
+				FifoRecorder::GetInstance().WriteGPCommand(opcodeStart, u32(opcodeEnd - opcodeStart));
+			if (wantFreeLookReplay)
+				FreeLookReplay::RecordCommand(opcodeStart, u32(opcodeEnd - opcodeStart));
 		}
 	}
 
